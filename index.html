@@ -6,7 +6,7 @@
   <title>Profil</title>
   <meta name="description" content="Mon profil, mis à jour par KuroPurr." />
   <link rel="icon" href="logo.png" />
-  <link rel="stylesheet" href="style.css?v=0.12.2" />
+  <link rel="stylesheet" href="style.css?v=0.13.0" />
 </head>
 <body>
   <div class="bg" id="bg" aria-hidden="true"></div>
@@ -16,13 +16,17 @@
     <!-- Haut de page -->
     <header class="top">
       <div class="box status"><span class="dot" id="dot"></span><span id="statusText">Chargement…</span></div>
+      <nav class="box nav" id="nav" aria-label="Pages">
+        <button class="on" data-page="profil" type="button">Profil</button>
+        <button data-page="projets" type="button">Projets &amp; Portfolio</button>
+      </nav>
       <div class="top-right">
         <div class="box ver" title="Version de KuroPurr">KuroPurr <b id="verClient">—</b></div>
         <div class="box ver" title="Version du site">Site <b id="verSite">—</b></div>
       </div>
     </header>
 
-    <main class="grid">
+    <main class="grid" data-page="profil">
       <!-- Gros carré : moi -->
       <section class="box card me">
         <div class="avatar"><img src="logo.png" alt="" id="avatar" /></div>
@@ -68,6 +72,30 @@
       </div>
     </main>
 
+    <!-- Projets & Portfolio -->
+    <main class="grid grid-projects" data-page="projets" hidden>
+      <section class="box card">
+        <h1 class="big-title">Portfolio</h1>
+        <hr />
+        <div class="md" id="portfolio"></div>
+      </section>
+      <section class="box card">
+        <h1 class="big-title">Mes projets</h1>
+        <div class="pstats" id="pstats"></div>
+        <hr />
+        <div class="projects" id="projects"></div>
+        <button class="more" id="projectsMore" type="button" hidden>Voir plus</button>
+      </section>
+    </main>
+
+    <!-- Fiche d'un projet -->
+    <div class="modal" id="modal" hidden>
+      <div class="box modal-box">
+        <button class="close" id="modalClose" type="button" aria-label="Fermer">✕</button>
+        <div id="modalBody"></div>
+      </div>
+    </div>
+
     <footer class="foot">
       <span class="box small" id="updated">—</span>
       <span class="box small" id="views">—</span>
@@ -76,6 +104,6 @@
   </div>
 
   <script src="config.js"></script>
-  <script src="app.js?v=0.12.2"></script>
+  <script src="app.js?v=0.13.0"></script>
 </body>
 </html>
