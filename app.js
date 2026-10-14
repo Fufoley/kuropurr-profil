@@ -3,9 +3,9 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 (function () {
   'use strict';
-  const SITE_VERSION = '1.0';
+  const SITE_VERSION = '1.1';
   const CONFIG = window.KP_PROFIL || {};
-  const REFRESH_MS = 12000;
+  const REFRESH_MS = 8000;
   const OFFLINE_AFTER_MS = 3 * 60 * 1000;
   const LANYARD_MS = 30000;
   const HISTORY_SHORT = 3;
@@ -170,7 +170,7 @@
       allBox.hidden = !showAllNow || current.length < 2;
       allBox.replaceChildren(...current.slice(1).map((a) => activityRow(a, false)));
     } else {
-      $('nowTitle').textContent = 'Dernière activité';
+      $('nowTitle').textContent = 'Activité récente';
       nowBox.replaceChildren(past.length ? activityRow(past[0], true) : el('p', { class: 'empty' }, 'Rien pour l’instant.'));
       more.hidden = true; allBox.hidden = true;
       if (past.length) past.shift(); // déjà affichée au-dessus
@@ -278,38 +278,40 @@
       const a = acts.find((x) => x.type === 0) || acts[0];
       const asset = (key) => { const v = a.assets && a.assets[key]; if (!v) return ''; return String(v).startsWith('mp:') ? `https://media.discordapp.net/${String(v).slice(3)}` : `https://cdn.discordapp.com/app-assets/${a.application_id}/${v}.png`; };
       const big = asset('large_image'), small = asset('small_image');
-      const KIND = { 0: 'Joue à', 1: 'Streame', 2: 'Écoute', 3: 'Regarde', 5: 'En compétition' };
       pres.replaceChildren(el('div', { class: 'rp' },
         el('div', { class: 'rp-img' }, big ? el('img', { src: big, alt: '', title: a.assets && a.assets.large_text || '', onerror: (e) => e.target.replaceWith(el('span', { class: 'ph' }, svg(ICONS.jeu))) }) : el('span', { class: 'ph' }, svg(ICONS.jeu)),
           small ? el('img', { class: 'mini', src: small, alt: '', title: a.assets && a.assets.small_text || '' }) : null),
-        el('div', { class: 'rp-text' }, el('span', { class: 'rp-kind' }, KIND[a.type] || 'Activité'), el('strong', {}, a.name), a.details ? el('span', {}, a.details) : null, a.state ? el('span', {}, a.state) : null,
+        el('div', { class: 'rp-text' }, el('strong', {}, a.name), a.details ? el('span', {}, a.details) : null, a.state ? el('span', {}, a.state) : null,
           a.timestamps && a.timestamps.start ? el('span', {}, `depuis ${dur((Date.now() - a.timestamps.start) / 1000)}`) : null)));
     } else {
       pres.replaceChildren(el('p', { class: 'muted small' }, st ? 'Aucune activité en ce moment.' : 'Hors ligne sur Discord.'));
     }
   }
 
-  /* ---------------- Vues (hits.sh) : comptées une fois par visiteur et par jour ---------------- */
+  /* ---------------- Vues : comptées une fois par visiteur et par jour ---------------- */
+  // counterapi.dev (gratuit, sans compte, réponse JSON) ; en secours, le badge SVG de hits.sh.
   let viewsDone = false;
   async function views(enabled) {
     const box = $('views');
     box.hidden = !enabled;
     if (!enabled || viewsDone) return;
     viewsDone = true;
-    const key = `${location.host}${location.pathname}`.replace(/\/+$/, '');
+    const ns = `kuropurr-${location.host.replace(/[^a-z0-9]/gi, '-')}`.toLowerCase();
+    const key = location.pathname.replace(/[^a-z0-9]/gi, '-').replace(/^-+|-+$/g, '') || 'profil';
     const today = new Date().toDateString();
     let mem = {};
     try { mem = JSON.parse(localStorage.getItem('kp-vues') || '{}'); } catch { /* stockage indisponible */ }
-    if (mem.day === today && Number.isFinite(mem.n)) { box.textContent = `${mem.n.toLocaleString('fr-FR')} vues`; return; }
+    const counted = mem.day === today;
     try {
-      const r = await fetch(`https://hits.sh/${key}.json`);
+      const r = await fetch(`https://api.counterapi.dev/v1/${ns}/${key}${counted ? '' : '/up'}`);
       const j = await r.json();
-      const n = Number(j.total ?? j.count ?? j.hits);
+      const n = Number(j.count ?? (j.data && j.data.count));
       if (!Number.isFinite(n)) throw new Error();
       box.textContent = `${n.toLocaleString('fr-FR')} vues`;
       try { localStorage.setItem('kp-vues', JSON.stringify({ day: today, n })); } catch { /* tant pis */ }
     } catch {
-      box.textContent = mem.n ? `${mem.n.toLocaleString('fr-FR')} vues` : 'vues indisponibles';
+      const img = el('img', { src: `https://hits.sh/${location.host}${location.pathname}.svg?label=vues&color=${encodeURIComponent((status && status.accent) || '#a9c59b').replace('%23', '')}&labelColor=1a1f1c&style=flat-square`, alt: 'vues', onerror: () => { box.textContent = mem.n ? `${mem.n.toLocaleString('fr-FR')} vues` : 'vues indisponibles'; } });
+      box.replaceChildren(img);
     }
   }
 
