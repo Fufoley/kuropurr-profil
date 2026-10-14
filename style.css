@@ -113,6 +113,31 @@ button { font: inherit; }
 .link-tile strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .link-tile span { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* ---------- Carte Discord ---------- */
+.stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.discord { padding: 18px 20px; }
+.dc-head { display: flex; align-items: center; gap: 14px; }
+.dc-avatar { position: relative; width: 72px; height: 72px; flex: none; }
+.dc-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #1a1f1c; }
+.dc-avatar .dc-deco { position: absolute; inset: -8px; width: auto; height: auto; border-radius: 0; background: none; pointer-events: none; }
+.dc-avatar .ring { right: 1px; bottom: 1px; width: 20px; height: 20px; }
+.dc-names { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dc-names strong { font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.dc-clan { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: rgba(255,255,255,.1); }
+.dc-clan img { width: 14px; height: 14px; }
+.dc-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.dc-badges img { width: 22px; height: 22px; }
+.dc-badges .nitro { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; }
+.dc-logo { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8b96f4; align-self: flex-start; }
+.dc-state { margin: 10px 0 0; }
+.dc-activity { display: flex; gap: 12px; align-items: center; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(88, 101, 242, .12); border: 1px solid rgba(88, 101, 242, .35); }
+.dc-activity img, .dc-activity .ph { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; background: #1a1f1c; flex: none; display: grid; place-items: center; color: #8b96f4; }
+.dc-activity .ph svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.dc-activity .t { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.dc-activity strong, .dc-activity span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.dc-activity span { font-size: 12px; color: var(--muted); }
+.dc-activity .bar { margin-top: 5px; }
+
 /* ---------- Projets ---------- */
 .projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .project { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 14px; background: var(--glass-2); border: 1px solid var(--line); color: inherit; text-align: left; cursor: pointer; transition: transform .15s, border-color .2s; }
