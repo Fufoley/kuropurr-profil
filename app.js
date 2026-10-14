@@ -3,7 +3,7 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 (function () {
   'use strict';
-  const SITE_VERSION = '1.1';
+  const SITE_VERSION = '1.2';
   const CONFIG = window.KP_PROFIL || {};
   const REFRESH_MS = 8000;
   const OFFLINE_AFTER_MS = 3 * 60 * 1000;
@@ -20,13 +20,14 @@
   };
 
   let status = null, lanyard = null;
-  let showAllHistory = false, showAllLinks = false, showAllNow = false;
+  let showAllHistory = false, showAllLinks = false, showAllNow = false, showAllProjects = false, projectFilter = 'all';
+  let page = location.hash.replace('#', '') || 'profil';
 
-  const DEFAULTS = { enLigne: false, enLigneDepuis: null, nePasDeranger: false, majLe: null, versionClient: '', pseudo: '', avatar: '', description: '', badges: [], discordId: '', liens: [], fond: '', accent: '', jeu: { actif: false }, musique: { actif: false }, activites: [], compteur: false };
+  const DEFAULTS = { enLigne: false, enLigneDepuis: null, nePasDeranger: false, majLe: null, versionClient: '', pseudo: '', avatar: '', description: '', badges: [], discordId: '', liens: [], fond: '', accent: '', jeu: { actif: false }, musique: { actif: false }, activites: [], portfolio: '', projets: [], compteur: false };
   const normalize = (raw) => {
     const s = { ...DEFAULTS, ...(raw && typeof raw === 'object' ? raw : {}) };
     for (const k of ['jeu', 'musique']) if (!s[k] || typeof s[k] !== 'object') s[k] = { actif: false };
-    for (const k of ['badges', 'liens', 'activites']) if (!Array.isArray(s[k])) s[k] = [];
+    for (const k of ['badges', 'liens', 'activites', 'projets']) if (!Array.isArray(s[k])) s[k] = [];
     return s;
   };
   function sources() {
@@ -73,6 +74,7 @@
     const inline = (s) => esc(s)
       .replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/__([^_]+)__/g, '<u>$1</u>')
       .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>')
       .replace(/~~([^~]+)~~/g, '<s>$1</s>')
       .replace(/!\[([^\]]*)\]\((https:\/\/[^)\s]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
@@ -134,6 +136,9 @@
     renderDiscord(s);
     renderActivity(s, online);
     renderLinks(s);
+    $('portfolio').innerHTML = markdown(s.portfolio);
+    renderProjects(s);
+    showPage(page);
 
     $('updated').textContent = s.majLe ? `Dernière mise à jour : ${when(s.majLe)}` : 'Pas encore de mise à jour';
     loadLanyard(s.discordId);
@@ -211,6 +216,53 @@
     m.textContent = showAllLinks ? 'Afficher moins' : `Afficher plus (${s.liens.length - LINKS_SHORT})`;
   }
   $('linksMore').addEventListener('click', () => { showAllLinks = !showAllLinks; render(); });
+
+  /* ---------------- Pages ---------------- */
+  function showPage(id) {
+    page = id;
+    for (const b of $('nav').children) b.classList.toggle('on', b.dataset.page === id);
+    for (const m of document.querySelectorAll('[data-page]')) if (m.tagName === 'MAIN') m.hidden = m.dataset.page !== id;
+  }
+  $('nav').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; history.replaceState(null, '', `#${b.dataset.page}`); showPage(b.dataset.page); });
+
+  /* ---------------- Projets ---------------- */
+  const STATUS = { en_cours: 'En cours', planifie: 'Planifié', termine: 'Terminé' };
+  const picOf = (p, cls) => el('span', { class: cls }, p.image ? el('img', { src: p.image, alt: '', loading: 'lazy', onerror: (e) => e.target.replaceWith(String(p.nom).charAt(0).toUpperCase()) }) : String(p.nom).charAt(0).toUpperCase());
+  function renderProjects(s) {
+    const all = s.projets;
+    const count = (st) => all.filter((p) => p.statut === st).length;
+    const stats = [['all', 'Projets', all.length], ['en_cours', 'En cours', count('en_cours')], ['planifie', 'Planifiés', count('planifie')], ['termine', 'Terminés', count('termine')]];
+    $('pstats').replaceChildren(...stats.map(([id, label, n]) => el('button', { class: `pstat ${projectFilter === id ? 'on' : ''}`, type: 'button', onclick: () => { projectFilter = projectFilter === id ? 'all' : id; renderProjects(status); } }, el('span', {}, label), el('b', {}, String(n)))));
+    const filtered = projectFilter === 'all' ? all : all.filter((p) => p.statut === projectFilter);
+    const featured = filtered.filter((p) => p.avant);
+    const preview = (featured.length ? featured : filtered).slice(0, 3);
+    const shown = showAllProjects ? filtered : preview;
+    $('projects').replaceChildren(...(shown.length ? shown.map((p) => el('button', { class: 'project', type: 'button', onclick: () => openProject(p) },
+      picOf(p, 'pic'),
+      el('div', { class: 'pt' }, el('strong', {}, p.nom), p.description ? el('p', {}, p.description) : null, el('span', {}, el('span', { class: `st ${p.statut}` }, STATUS[p.statut] || 'En cours')))))
+      : [el('p', { class: 'empty' }, all.length ? 'Aucun projet avec ce statut.' : 'Pas encore de projet.')]));
+    const m = $('projectsMore');
+    m.hidden = filtered.length <= preview.length;
+    m.textContent = showAllProjects ? 'Voir moins' : `Voir plus (${filtered.length - preview.length})`;
+  }
+  $('projectsMore').addEventListener('click', () => { showAllProjects = !showAllProjects; renderProjects(status); });
+  function openProject(p) {
+    const links = (p.liens || []).map((l) => el('a', { class: 'chip', href: l.url, target: '_blank', rel: 'noopener', style: `--c:${colorOf(l.nom)}` }, el('i'), l.nom));
+    const members = (p.membres || []).map((m) => el(m.url ? 'a' : 'span', { class: 'member', href: m.url || null, target: m.url ? '_blank' : null, rel: 'noopener', title: m.url ? 'Voir le profil' : null },
+      m.avatar ? el('img', { src: m.avatar, alt: '' }) : el('span', { class: 'ini' }, String(m.nom).charAt(0).toUpperCase()), m.nom));
+    const body = $('modalBody');
+    body.replaceChildren(...[
+      el('div', { class: 'modal-head' }, picOf(p, 'pic'), el('div', {}, el('h1', {}, p.nom), el('p', { class: 'muted', style: 'margin:4px 0 6px' }, p.description || ''), el('span', { class: `st ${p.statut}` }, STATUS[p.statut] || 'En cours'))),
+      el('div', { class: 'md' }),
+      links.length ? [el('h2', {}, 'Liens'), el('div', { class: 'chips' }, links)] : null,
+      members.length ? [el('h2', { style: 'margin-top:16px' }, 'Collaborateurs'), el('div', { class: 'members' }, members)] : null,
+    ].flat(2).filter(Boolean));
+    body.querySelector('.md').innerHTML = markdown(p.details);
+    $('modal').hidden = false;
+  }
+  $('modalClose').addEventListener('click', () => { $('modal').hidden = true; });
+  $('modal').addEventListener('click', (e) => { if (e.target === $('modal')) $('modal').hidden = true; });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('modal').hidden = true; });
 
   /* ---------------- Pseudo animé ---------------- */
   let typed = '', typing = null;
