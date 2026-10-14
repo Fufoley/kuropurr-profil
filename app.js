@@ -180,12 +180,10 @@
     if (!avatar) img.src = 'logo.png';
     img.onerror = () => { img.src = 'logo.png'; };
     $('ring').className = `ring ${pr.dc || (pr.kp ? 'online' : '')}`;
-    $('badges').replaceChildren(...s.badges.map((b) => el('span', { class: 'badge' }, b)), ...discordBadges().map((b) => el('span', { class: 'badge discord', title: 'Badge Discord' }, b)));
+    $('badges').replaceChildren(...s.badges.map((b) => el('span', { class: 'badge' }, b)));
     $('mood').hidden = !s.humeur; $('mood').textContent = s.humeur || '';
-    const dcName = lanyard && lanyard.discord_user ? (lanyard.discord_user.global_name || lanyard.discord_user.username) : '';
-    $('dcStatus').hidden = !s.discordId;
-    $('dcStatus').textContent = s.discordId ? (pr.dc ? `Discord : ${({ online: 'en ligne', idle: 'absent', dnd: 'ne pas déranger' })[pr.dc]}${dcName ? ` · ${dcName}` : ''}` : 'Discord : hors ligne') : '';
     $('description').innerHTML = markdown(s.description);
+    renderDiscord(s, pr);
 
     // Activité
     const { game, music } = activity(s, pr);
@@ -386,6 +384,7 @@
     const w = `${(pos / total) * 100}%`;
     if (fill) { fill.style.width = w; $('musicPos').textContent = fmtTime(pos); $('musicLen').textContent = fmtTime(total); }
     $('npFill').style.width = w; $('npPos').textContent = fmtTime(pos); $('npLen').textContent = fmtTime(total);
+    const dcFill = $('dcFill'); if (dcFill && lanyard && lanyard.spotify && lanyard.spotify.timestamps) { const t = lanyard.spotify.timestamps; dcFill.style.width = `${Math.min(100, ((Date.now() - t.start) / Math.max(1, t.end - t.start)) * 100)}%`; }
   }
 
   /* ---------------- Pseudo animé, carte inclinée ---------------- */
@@ -417,13 +416,67 @@
       if (j && j.success && j.data) { lanyard = j.data; render(); }
     } catch { /* la page marche sans */ }
   }
-  const FLAGS = [[1, 'Staff Discord'], [2, 'Partenaire'], [4, 'HypeSquad Events'], [8, 'Bug Hunter'], [64, 'HypeSquad Bravery'], [128, 'HypeSquad Brilliance'], [256, 'HypeSquad Balance'], [512, 'Early Supporter'], [16384, 'Bug Hunter Gold'], [131072, 'Dév. de bot vérifié'], [262144, 'Modérateur certifié'], [4194304, 'Développeur actif']];
+  // Badges Discord : bit de public_flags, nom, icône officielle (CDN Discord).
+  const FLAGS = [
+    [1, 'Staff Discord', '5e74e9b61934fc1f67c65515d1f7e60d'], [2, 'Partenaire', '3f9748e53446a137a052f3454e2de41e'], [4, 'HypeSquad Events', 'bf01d1073931f921909045f3a39fd264'],
+    [8, 'Bug Hunter', '2717692c7dca7289b35297368a940dd0'], [64, 'HypeSquad Bravery', '8a88d63823d8a71cd5e390baa45efa02'], [128, 'HypeSquad Brilliance', '011940fd013da3f7fb926e4a1cd2e618'],
+    [256, 'HypeSquad Balance', '3aa41de486fa12454c3761e8e223442e'], [512, 'Early Supporter', '7060786766c9c840eb3019e725d2b358'], [16384, 'Bug Hunter Gold', '848f79194d4be5ff5f81505cbd0ce1e6'],
+    [131072, 'Développeur de bot vérifié', '6df5892e0f35b866c5edb2cd7a01ab16'], [262144, 'Modérateur certifié', 'fee1624003e2fee35cb398e125dc479b'], [4194304, 'Développeur actif', '6bdc42827a38498929a4920da12695d9'],
+  ];
+  const NITRO_ICON = '2ba85e8026a8614b640c2837bcdfe21b';
   function discordBadges() {
     const u = lanyard && lanyard.discord_user;
     if (!u) return [];
-    const out = FLAGS.filter(([bit]) => Number(u.public_flags || 0) & bit).map(([, name]) => name);
-    if (u.premium_type) out.push('Nitro');
+    const out = FLAGS.filter(([bit]) => Number(u.public_flags || 0) & bit).map(([, name, icon]) => ({ name, icon }));
+    if (u.premium_type) out.push({ name: 'Nitro', icon: NITRO_ICON });
     return out;
+  }
+  const badgeImg = (b) => el('img', { src: `https://cdn.discordapp.com/badge-icons/${b.icon}.png`, alt: b.name, title: b.name, onerror: (e) => { e.target.replaceWith(el('span', { class: 'badge discord' }, b.name)); } });
+  /** Carte Discord à droite (via Lanyard) : photo, nom, badges, statut, activité en cours. */
+  function renderDiscord(s, pr) {
+    const card = $('discordCard');
+    card.hidden = !s.discordId;
+    if (!s.discordId) return;
+    const u = lanyard && lanyard.discord_user;
+    if (!u) {
+      $('dcName').textContent = 'Discord';
+      $('dcTag').textContent = '';
+      $('dcBadges').replaceChildren();
+      $('dcState').textContent = 'Profil Discord indisponible pour le moment.';
+      $('dcActivity').hidden = true;
+      return;
+    }
+    const avatar = u.avatar ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.${String(u.avatar).startsWith('a_') ? 'gif' : 'png'}?size=128` : `https://cdn.discordapp.com/embed/avatars/${Number(BigInt(u.id) >> 22n) % 6}.png`;
+    const img = $('dcAvatar');
+    if (img.dataset.src !== avatar) { img.dataset.src = avatar; img.src = avatar; img.onerror = () => { img.src = 'logo.png'; }; }
+    const deco = u.avatar_decoration_data && u.avatar_decoration_data.asset ? `https://cdn.discordapp.com/avatar-decoration-presets/${u.avatar_decoration_data.asset}.png?size=96&passthrough=true` : '';
+    $('dcDeco').hidden = !deco;
+    if (deco && $('dcDeco').dataset.src !== deco) { $('dcDeco').dataset.src = deco; $('dcDeco').src = deco; }
+    $('dcRing').className = `ring ${pr.dc || ''}`;
+    const clan = u.primary_guild && u.primary_guild.tag ? el('span', { class: 'dc-clan' }, u.primary_guild.badge && u.primary_guild.identity_guild_id ? el('img', { src: `https://cdn.discordapp.com/clan-badges/${u.primary_guild.identity_guild_id}/${u.primary_guild.badge}.png?size=16`, alt: '' }) : null, u.primary_guild.tag) : null;
+    $('dcName').replaceChildren(u.global_name || u.username, clan);
+    $('dcTag').textContent = `@${u.username}`;
+    $('dcBadges').replaceChildren(...discordBadges().map(badgeImg));
+    $('dcState').textContent = pr.dc ? ({ online: 'En ligne', idle: 'Absent', dnd: 'Ne pas déranger' })[pr.dc] : 'Hors ligne';
+    // Activité vue par Discord : Spotify d'abord (avec la pochette), sinon le premier jeu
+    const act = $('dcActivity');
+    let node = null;
+    if (lanyard.listening_to_spotify && lanyard.spotify) {
+      const sp = lanyard.spotify;
+      node = [sp.album_art_url ? el('img', { src: sp.album_art_url, alt: '' }) : el('span', { class: 'ph' }, svg(ICONS.musique)),
+        el('div', { class: 't' }, el('strong', {}, sp.song), el('span', {}, `${sp.artist || ''}${sp.album ? ' · ' + sp.album : ''}`), el('span', {}, 'Écoute Spotify'),
+          sp.timestamps ? el('div', { class: 'bar' }, el('div', { class: 'fill', id: 'dcFill' })) : null)];
+    } else {
+      const a = (lanyard.activities || []).find((x) => x.type === 0 && x.name);
+      if (a) {
+        const asset = a.assets && a.assets.large_image ? (String(a.assets.large_image).startsWith('mp:') ? `https://media.discordapp.net/${String(a.assets.large_image).slice(3)}` : `https://cdn.discordapp.com/app-assets/${a.application_id}/${a.assets.large_image}.png`) : '';
+        node = [asset ? el('img', { src: asset, alt: '', onerror: (e) => e.target.replaceWith(el('span', { class: 'ph' }, svg(ICONS.jeu))) }) : el('span', { class: 'ph' }, svg(ICONS.jeu)),
+          el('div', { class: 't' }, el('strong', {}, a.name), a.details ? el('span', {}, a.details) : null, a.state ? el('span', {}, a.state) : null,
+            el('span', {}, a.timestamps && a.timestamps.start ? `Joue depuis ${dur((Date.now() - a.timestamps.start) / 1000)}` : 'Joue'))];
+      }
+    }
+    act.hidden = !node;
+    if (node) act.replaceChildren(...node);
   }
 
   /* ---------------- Compteur de vues (hits.sh) ---------------- */
