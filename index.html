@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Profil</title>
-  <meta name="description" content="Mon profil : ce que je fais, mes projets, mes jeux, mes animes. Mis à jour par KuroPurr." />
+  <meta name="description" content="Mon profil, mis à jour par KuroPurr." />
   <link rel="icon" href="logo.png" />
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -12,152 +12,69 @@
   <div class="bg" id="bg" aria-hidden="true"></div>
   <div class="bg-dim" aria-hidden="true"></div>
 
-  <div class="enter" id="enter" role="button" tabindex="0" aria-label="Entrer">
-    <div class="enter-box">
-      <img src="logo.png" alt="" class="enter-logo" />
-      <h1 id="enterName">…</h1>
-      <p id="enterText">clique pour entrer</p>
-    </div>
-  </div>
-
-  <div class="app" id="app" hidden>
+  <div class="page">
+    <!-- Haut de page -->
     <header class="top">
-      <div class="presence glass" id="presence"><span class="dot" id="dot"></span><span id="presenceText">Chargement…</span></div>
-      <nav class="tabs glass" id="tabs" aria-label="Pages"></nav>
-      <div class="top-right"><button class="sound glass" id="sound" type="button" hidden aria-label="Son">♪</button></div>
+      <div class="box status"><span class="dot" id="dot"></span><span id="statusText">Chargement…</span></div>
+      <div class="top-right">
+        <div class="box ver" title="Version de KuroPurr">KuroPurr <b id="verClient">—</b></div>
+        <div class="box ver" title="Version du site">Site <b id="verSite">—</b></div>
+      </div>
     </header>
 
-    <!-- Profil -->
-    <main class="stage" data-page="profil">
-      <div class="cols">
-        <section class="glass card me" id="card">
-          <div class="avatar-wrap"><img src="logo.png" alt="" id="avatarImg" /><span class="ring" id="ring"></span></div>
-          <h1 class="pseudo"><span id="pseudo"></span><span class="caret" aria-hidden="true"></span></h1>
-          <div class="badges" id="badges"></div>
-          <p class="mood" id="mood" hidden></p>
-          <div class="md" id="description"></div>
-        </section>
-        <div class="stack">
-        <section class="glass card discord" id="discordCard" hidden>
+    <main class="grid">
+      <!-- Gros carré : moi -->
+      <section class="box card me">
+        <div class="avatar"><img src="logo.png" alt="" id="avatar" /></div>
+        <h1 class="pseudo"><span id="pseudo"></span><span class="caret" aria-hidden="true"></span></h1>
+        <div class="tags" id="tags"></div>
+        <hr />
+        <div class="md" id="description"></div>
+      </section>
+
+      <div class="col">
+        <!-- Discord -->
+        <section class="box card discord" id="discord" hidden>
+          <span class="dc-logo">Discord</span>
           <div class="dc-head">
             <div class="dc-avatar"><img src="logo.png" alt="" id="dcAvatar" /><img class="dc-deco" alt="" id="dcDeco" hidden /><span class="ring" id="dcRing"></span></div>
             <div class="dc-names">
               <strong id="dcName"></strong>
-              <span class="muted small" id="dcTag"></span>
+              <span class="muted" id="dcTag"></span>
               <div class="dc-badges" id="dcBadges"></div>
             </div>
-            <span class="dc-logo" aria-hidden="true">Discord</span>
           </div>
-          <p class="muted small dc-state" id="dcState"></p>
-          <div class="dc-activity" id="dcActivity" hidden></div>
+          <hr />
+          <div id="dcPresence"><p class="muted small">Aucune activité Discord.</p></div>
         </section>
-        <section class="glass card">
-          <div class="card-head"><h2>Activité</h2><span class="muted small">4 derniers jours</span></div>
-          <div class="now" id="now"></div>
-          <div id="history"></div>
+
+        <!-- Activité -->
+        <section class="box card">
+          <h2 id="nowTitle">Activité en cours</h2>
+          <div id="now"></div>
+          <button class="link-btn" id="nowMore" type="button" hidden>Voir toutes les activités en cours</button>
+          <div id="nowAll" hidden></div>
+          <h2>Dernières activités</h2>
+          <ul class="list" id="history"></ul>
           <button class="more" id="historyMore" type="button" hidden>Afficher plus</button>
         </section>
-        </div>
+
+        <!-- Liens -->
+        <section class="box card">
+          <h2>Liens</h2>
+          <div class="links" id="links"></div>
+          <button class="more" id="linksMore" type="button" hidden>Afficher plus</button>
+        </section>
       </div>
-      <section class="glass card">
-        <div class="card-head"><h2>Liens</h2></div>
-        <div class="links" id="links"></div>
-        <button class="more" id="linksMore" type="button" hidden>Afficher plus</button>
-      </section>
-    </main>
-
-    <!-- Projets & Portfolio -->
-    <main class="stage" data-page="projets" hidden>
-      <div class="cols cols-portfolio">
-        <section class="glass card"><div class="card-head"><h2>Portfolio</h2></div><div class="md" id="portfolio"></div></section>
-        <section class="glass card"><div class="card-head"><h2>Projets</h2></div><div class="projects" id="projects"></div></section>
-      </div>
-    </main>
-
-    <!-- Jeux -->
-    <main class="stage" data-page="jeux" hidden>
-      <section class="glass card">
-        <div class="card-head">
-          <div class="switch" id="gameSwitch">
-            <button class="on" data-lib="steam" type="button">Steam</button>
-            <button data-lib="roblox" type="button">Roblox</button>
-            <button data-lib="minecraft" type="button">Minecraft</button>
-          </div>
-          <div class="stats" id="gameStats"></div>
-        </div>
-        <div class="toolbar" id="gameTools">
-          <input class="search" id="gameSearch" type="search" placeholder="Chercher…" aria-label="Chercher un jeu" />
-          <select class="select" id="gameSort" aria-label="Trier">
-            <option value="hours">Temps de jeu</option>
-            <option value="recent">Joués récemment</option>
-            <option value="last">Dernière partie</option>
-            <option value="name">Nom</option>
-          </select>
-          <select class="select" id="gameFilter" aria-label="Filtrer">
-            <option value="all">Tous</option>
-            <option value="installed">Installés</option>
-            <option value="recent">2 dernières semaines</option>
-            <option value="played">Déjà lancés</option>
-          </select>
-        </div>
-        <div class="games" id="games"></div>
-      </section>
-    </main>
-
-    <!-- Anime -->
-    <main class="stage" data-page="anime" hidden>
-      <section class="glass card">
-        <div class="card-head"><h2>Anime</h2><div class="stats" id="animeStats"></div></div>
-        <div class="switch" id="animeSwitch">
-          <button class="on" data-st="watching" type="button">En cours</button>
-          <button data-st="completed" type="button">Terminés</button>
-          <button data-st="plan_to_watch" type="button">À voir</button>
-          <button data-st="on_hold" type="button">En pause</button>
-          <button data-st="dropped" type="button">Abandonnés</button>
-        </div>
-        <div class="anime-grid" id="animeGrid"></div>
-      </section>
-    </main>
-
-    <!-- Musique -->
-    <main class="stage" data-page="musique" hidden>
-      <section class="glass card">
-        <div class="card-head"><h2>Musique</h2></div>
-        <div class="np" id="np" hidden>
-          <div class="np-disc" aria-hidden="true"></div>
-          <div class="np-text">
-            <span class="muted small" id="npSource">En écoute</span>
-            <strong id="npTitle"></strong>
-            <span class="muted" id="npArtist"></span>
-            <div class="bar"><div class="fill" id="npFill"></div></div>
-            <span class="times"><span id="npPos">0:00</span><span id="npLen">0:00</span></span>
-          </div>
-        </div>
-        <p class="muted quiet" id="npNothing">Rien en écoute pour l’instant.</p>
-        <div id="music"></div>
-        <div class="ambiance" id="ambianceBox" hidden>
-          <h3>Fond sonore de la page</h3>
-          <div class="ambiance-row"><button class="btn" id="ambToggle" type="button">Pause</button><input type="range" id="ambVolume" min="0" max="100" value="35" aria-label="Volume" /></div>
-        </div>
-      </section>
     </main>
 
     <footer class="foot">
-      <span id="updated"></span>
-      <span class="views" id="views" hidden></span>
-      <span class="made"><img src="logo.png" alt="" /> by KuroPurr</span>
+      <span class="box small" id="updated">—</span>
+      <span class="box small" id="views">—</span>
+      <span class="box small made">Powered by KuroPurr <span class="sep">•</span> <img src="logo.png" alt="" /></span>
     </footer>
   </div>
 
-  <!-- Fiche (projet) -->
-  <div class="modal" id="modal" hidden>
-    <div class="modal-box glass">
-      <button class="close" id="modalClose" type="button" aria-label="Fermer">✕</button>
-      <div id="modalBody"></div>
-    </div>
-  </div>
-
-  <audio id="ambiance" loop preload="none"></audio>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
