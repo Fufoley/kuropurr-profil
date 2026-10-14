@@ -127,7 +127,7 @@
     const avatar = s.avatar || dcAvatar || 'logo.png';
     if (img.dataset.src !== avatar) { img.dataset.src = avatar; img.src = avatar; img.onerror = () => { img.src = 'logo.png'; }; }
     typewrite(s.pseudo || 'Quelqu’un');
-    const tags = s.badges.slice(0, 3);
+    const tags = s.badges.flatMap((b) => String(b).split(/[,•·|;]+/)).map((x) => x.trim()).filter(Boolean).slice(0, 3);
     $('tags').replaceChildren(...tags.flatMap((t, i) => [i ? el('span', { class: 'sep' }, '•') : null, el('span', { class: 'tag' }, t)]).filter(Boolean));
     $('description').innerHTML = markdown(s.description);
 
@@ -173,6 +173,7 @@
       $('nowTitle').textContent = 'Dernière activité';
       nowBox.replaceChildren(past.length ? activityRow(past[0], true) : el('p', { class: 'empty' }, 'Rien pour l’instant.'));
       more.hidden = true; allBox.hidden = true;
+      if (past.length) past.shift(); // déjà affichée au-dessus
     }
     // Dernières activités : 3, puis 7 jours
     const limit = Date.now() - HISTORY_DAYS * 86400000;
@@ -181,7 +182,7 @@
     $('history').replaceChildren(...(shown.length ? shown.map((a) => el('li', {}, entryIcon(a, 'k'),
       el('span', { class: 't' }, entryName(a), el('span', {}, ` · ${[a.detail, a.source].filter(Boolean).join(' · ')}`)),
       el('time', { datetime: a.debut, title: new Date(a.debut).toLocaleString('fr-FR') }, `${isToday(a.debut) ? clock.format(Date.parse(a.debut)) : dateFmt.format(Date.parse(a.debut))} · ${dur((Date.parse(a.fin) - Date.parse(a.debut)) / 1000)}`)))
-      : [el('li', { class: 'empty' }, 'Rien ces 7 derniers jours.')]));
+      : [el('li', { class: 'empty' }, 'Rien d’autre ces 7 derniers jours.')]));
     const hm = $('historyMore');
     hm.hidden = week.length <= HISTORY_SHORT;
     hm.textContent = showAllHistory ? 'Afficher moins' : `Afficher plus (${week.length - HISTORY_SHORT})`;
