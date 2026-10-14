@@ -35,8 +35,21 @@
           <h1 class="pseudo"><span id="pseudo"></span><span class="caret" aria-hidden="true"></span></h1>
           <div class="badges" id="badges"></div>
           <p class="mood" id="mood" hidden></p>
-          <p class="dc" id="dcStatus" hidden></p>
           <div class="md" id="description"></div>
+        </section>
+        <div class="stack">
+        <section class="glass card discord" id="discordCard" hidden>
+          <div class="dc-head">
+            <div class="dc-avatar"><img src="logo.png" alt="" id="dcAvatar" /><img class="dc-deco" alt="" id="dcDeco" hidden /><span class="ring" id="dcRing"></span></div>
+            <div class="dc-names">
+              <strong id="dcName"></strong>
+              <span class="muted small" id="dcTag"></span>
+              <div class="dc-badges" id="dcBadges"></div>
+            </div>
+            <span class="dc-logo" aria-hidden="true">Discord</span>
+          </div>
+          <p class="muted small dc-state" id="dcState"></p>
+          <div class="dc-activity" id="dcActivity" hidden></div>
         </section>
         <section class="glass card">
           <div class="card-head"><h2>Activité</h2><span class="muted small">4 derniers jours</span></div>
@@ -44,6 +57,7 @@
           <div id="history"></div>
           <button class="more" id="historyMore" type="button" hidden>Afficher plus</button>
         </section>
+        </div>
       </div>
       <section class="glass card">
         <div class="card-head"><h2>Liens</h2></div>
