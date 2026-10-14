@@ -12,6 +12,7 @@ a { color: var(--accent); }
 h1, h2 { margin: 0; font-weight: 700; }
 h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); margin: 0 0 10px; }
 h2 + h2, .list + h2, .more + h2 { margin-top: 18px; }
+.card > h2:not(:first-child) { margin-top: 20px; }
 hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0; width: 100%; }
 .muted { color: var(--muted); } .small { font-size: 12px; }
 button { font: inherit; }
@@ -130,6 +131,7 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 .foot .box { padding: 8px 14px; color: var(--muted); justify-self: center; display: inline-flex; align-items: center; gap: 8px; }
 .foot .box:first-child { justify-self: start; } .foot .box:last-child { justify-self: end; }
 .made img { width: 16px; height: 16px; opacity: .85; }
+#views img { height: 18px; display: block; }
 
 @media (max-width: 760px) {
   .grid { grid-template-columns: 1fr; }
