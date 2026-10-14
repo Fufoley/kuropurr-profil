@@ -4,49 +4,125 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Profil</title>
-  <meta name="description" content="Ce que je fais en ce moment, mis à jour par KuroPurr." />
+  <meta name="description" content="Mon profil : ce que je fais en ce moment, mes projets, mes jeux. Mis à jour par KuroPurr." />
   <link rel="icon" href="logo.png" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="card" id="card">
-    <header class="who">
-      <div class="avatar" id="avatar"><img src="logo.png" alt="" id="avatarImg" /></div>
-      <div class="who-text">
-        <h1 id="pseudo">…</h1>
-        <p class="presence" id="presence"><span class="dot" id="dot"></span><span id="presenceText">Chargement…</span></p>
-      </div>
-    </header>
-    <p class="mood" id="mood" hidden></p>
-    <p class="bio" id="bio" hidden></p>
+  <div class="bg" id="bg" aria-hidden="true"></div>
+  <div class="bg-dim" aria-hidden="true"></div>
 
-    <section class="now" id="now">
-      <h2>En ce moment</h2>
-      <div class="row" id="gameRow" hidden>
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7.5 8h9a4.5 4.5 0 0 1 4.4 5.5l-.8 3.5a2.2 2.2 0 0 1-3.8 1l-2-2.2h-4.6l-2 2.2a2.2 2.2 0 0 1-3.8-1l-.8-3.5A4.5 4.5 0 0 1 7.5 8z"/><path d="M8 11v3M6.5 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg></span>
-        <div class="row-text">
-          <strong id="gameName"></strong>
-          <span class="muted"><span id="gamePlatform"></span> · depuis <span id="gameSince"></span></span>
-        </div>
-      </div>
-      <div class="row" id="musicRow" hidden>
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 17.5V5.5l10-2v12"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/></svg></span>
-        <div class="row-text">
-          <strong id="musicTitle"></strong>
-          <span class="muted" id="musicArtist"></span>
-          <div class="bar"><div class="fill" id="musicFill"></div></div>
-          <span class="times"><span id="musicPos">0:00</span><span id="musicLen">0:00</span></span>
-        </div>
-      </div>
-      <p class="muted quiet" id="nothing" hidden>Rien de particulier pour l’instant.</p>
-    </section>
+  <!-- Écran d'entrée : un clic pour entrer (et lancer la musique d'ambiance s'il y en a une) -->
+  <div class="enter" id="enter" role="button" tabindex="0" aria-label="Entrer">
+    <div class="enter-box">
+      <img src="logo.png" alt="" class="enter-logo" />
+      <h1 id="enterName">…</h1>
+      <p id="enterText">clique pour entrer</p>
+    </div>
+  </div>
 
-    <nav class="links" id="links"></nav>
+  <div class="app" id="app" hidden>
+    <nav class="tabs" id="tabs" aria-label="Catégories"></nav>
+
+    <main class="stage">
+      <!-- Profil -->
+      <section class="panel glass tilt" id="card" data-panel="profil">
+        <div class="grid">
+          <aside class="me">
+            <div class="avatar-wrap" id="avatar"><img src="logo.png" alt="" id="avatarImg" /><span class="ring" id="ring"></span></div>
+            <h1 class="pseudo"><span id="pseudo"></span><span class="caret" aria-hidden="true"></span></h1>
+            <div class="badges" id="badges"></div>
+            <p class="mood" id="mood" hidden></p>
+            <p class="presence"><span class="dot" id="dot"></span><span id="presenceText">Chargement…</span></p>
+          </aside>
+
+          <div class="now-col">
+            <h2>En ce moment</h2>
+            <div class="row" id="gameRow" hidden>
+              <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7.5 8h9a4.5 4.5 0 0 1 4.4 5.5l-.8 3.5a2.2 2.2 0 0 1-3.8 1l-2-2.2h-4.6l-2 2.2a2.2 2.2 0 0 1-3.8-1l-.8-3.5A4.5 4.5 0 0 1 7.5 8z"/><path d="M8 11v3M6.5 12.5h3M15.5 12h.01M17.5 13.5h.01"/></svg></span>
+              <div class="row-text">
+                <strong id="gameName"></strong>
+                <span class="muted"><span id="gamePlatform"></span> · depuis <span id="gameSince"></span></span>
+              </div>
+            </div>
+            <div class="row" id="musicRow" hidden>
+              <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 17.5V5.5l10-2v12"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/></svg></span>
+              <div class="row-text">
+                <strong id="musicTitle"></strong>
+                <span class="muted" id="musicArtist"></span>
+                <div class="bar"><div class="fill" id="musicFill"></div></div>
+                <span class="times"><span id="musicPos">0:00</span><span id="musicLen">0:00</span></span>
+              </div>
+            </div>
+            <p class="muted quiet" id="nothing" hidden>Rien de particulier pour l’instant.</p>
+
+            <h2 id="historyTitle">Dernières activités</h2>
+            <ul class="history" id="history"></ul>
+          </div>
+        </div>
+        <p class="bio" id="bio" hidden></p>
+        <nav class="socials" id="links" aria-label="Réseaux"></nav>
+      </section>
+
+      <!-- Projets -->
+      <section class="panel glass" data-panel="projets" hidden>
+        <h2>Projets</h2>
+        <div class="projects" id="projects"></div>
+      </section>
+
+      <!-- Gaming -->
+      <section class="panel glass" data-panel="gaming" hidden>
+        <div class="panel-head">
+          <h2>Gaming</h2>
+          <div class="stats" id="steamStats"></div>
+          <input class="search" id="gameSearch" type="search" placeholder="Chercher un jeu…" aria-label="Chercher un jeu" />
+        </div>
+        <div class="games" id="games"></div>
+      </section>
+
+      <!-- Musique -->
+      <section class="panel glass" data-panel="musique" hidden>
+        <h2>Musique</h2>
+        <div class="np" id="np" hidden>
+          <div class="np-disc" aria-hidden="true"></div>
+          <div class="np-text">
+            <span class="muted small">En écoute</span>
+            <strong id="npTitle"></strong>
+            <span class="muted" id="npArtist"></span>
+            <div class="bar"><div class="fill" id="npFill"></div></div>
+          </div>
+        </div>
+        <p class="muted quiet" id="npNothing">Rien en écoute pour l’instant.</p>
+        <h3>Écoutées récemment</h3>
+        <ul class="history" id="songs"></ul>
+        <div class="ambiance" id="ambianceBox" hidden>
+          <h3>Fond sonore de la page</h3>
+          <div class="ambiance-row">
+            <button class="btn" id="ambToggle" type="button">Pause</button>
+            <input type="range" id="ambVolume" min="0" max="100" value="35" aria-label="Volume" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Anime -->
+      <section class="panel glass" data-panel="anime" hidden>
+        <div class="panel-head">
+          <h2>Anime</h2>
+          <div class="stats" id="animeStats"></div>
+        </div>
+        <div id="animeBody"><p class="muted quiet">Chargement…</p></div>
+      </section>
+    </main>
+
     <footer class="foot">
       <span id="updated"></span>
+      <span class="views" id="views" hidden></span>
+      <button class="sound" id="sound" type="button" hidden aria-label="Son">♪</button>
       <span class="made"><img src="logo.png" alt="" /> via KuroPurr</span>
     </footer>
-  </main>
+  </div>
+
+  <audio id="ambiance" loop preload="none"></audio>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
