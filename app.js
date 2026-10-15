@@ -3,7 +3,7 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 (function () {
   'use strict';
-  const SITE_VERSION = '1.5';
+  const SITE_VERSION = '1.6';
   const CONFIG = window.KP_PROFIL || {};
   const REFRESH_MS = 8000;
   const OFFLINE_AFTER_MS = 3 * 60 * 1000;
@@ -23,11 +23,11 @@
   let projectFilter = 'all', postTag = '';
   let page = location.hash.replace('#', '') || 'profil';
 
-  const DEFAULTS = { enLigne: false, enLigneDepuis: null, nePasDeranger: false, majLe: null, versionClient: '', pseudo: '', avatar: '', description: '', badges: [], discordId: '', liens: [], fond: '', accent: '', jeu: { actif: false }, musique: { actif: false }, activites: [], projets: [], posts: [], tagsPosts: [], compteur: false };
+  const DEFAULTS = { enLigne: false, enLigneDepuis: null, nePasDeranger: false, majLe: null, versionClient: '', pseudo: '', avatar: '', description: '', badges: [], discordId: '', badgesDiscord: [], liens: [], fond: '', accent: '', jeu: { actif: false }, musique: { actif: false }, activites: [], projets: [], posts: [], tagsPosts: [], compteur: false };
   const normalize = (raw) => {
     const s = { ...DEFAULTS, ...(raw && typeof raw === 'object' ? raw : {}) };
     for (const k of ['jeu', 'musique']) if (!s[k] || typeof s[k] !== 'object') s[k] = { actif: false };
-    for (const k of ['badges', 'liens', 'activites', 'projets', 'posts', 'tagsPosts']) if (!Array.isArray(s[k])) s[k] = [];
+    for (const k of ['badges', 'liens', 'activites', 'projets', 'posts', 'tagsPosts', 'badgesDiscord']) if (!Array.isArray(s[k])) s[k] = [];
     return s;
   };
   function sources() {
@@ -343,7 +343,35 @@
     [131072, 'Développeur de bot vérifié', '6df5892e0f35b866c5edb2cd7a01ab16'], [262144, 'Modérateur certifié', 'fee1624003e2fee35cb398e125dc479b'], [4194304, 'Développeur actif', '6bdc42827a38498929a4920da12695d9'],
   ];
   const NITRO = '2ba85e8026a8614b640c2837bcdfe21b';
-  const badge = (name, icon) => el('img', { src: `https://cdn.discordapp.com/badge-icons/${icon}.png`, alt: name, title: name, onerror: (e) => e.target.replaceWith(el('span', { class: 'txt', title: name }, name)) });
+  const badge = (name, icon) => el('img', { src: icon.startsWith('http') ? icon : `https://cdn.discordapp.com/badge-icons/${icon}.png`, alt: name, title: name, onerror: (e) => e.target.replaceWith(el('span', { class: 'txt', title: name }, name)) });
+  // Badges déclarés à la main (Discord ne les rend pas publics) : icônes officielles via le dépôt mezotv/discord-badges.
+  const BADGE_CDN = 'https://cdn.jsdelivr.net/gh/mezotv/discord-badges@main/assets/';
+  const TIERS = {
+    nitroTier: [['bronze', 'Nitro Bronze'], ['silver', 'Nitro Argent'], ['gold', 'Nitro Or'], ['platinum', 'Nitro Platine'], ['diamond', 'Nitro Diamant'], ['emerald', 'Nitro Émeraude'], ['ruby', 'Nitro Rubis'], ['opal', 'Nitro Opale']].map(([k, l]) => [k, l, `subscriptions/badges/${k}.png`]),
+    boost: [['1', '1 mois'], ['2', '2 mois'], ['3', '3 mois'], ['4', '6 mois'], ['5', '9 mois'], ['6', '1 an'], ['7', '1 an 3 mois'], ['8', '1 an 6 mois'], ['9', '2 ans']].map(([k, l]) => [k, `Boost de serveur · ${l}`, `boosts/discord-boost-${k}.svg`]),
+    gifting: [['patron', 'Mécène'], ['champion', 'Champion'], ['luminary', 'Luminaire'], ['icon', 'Icône'], ['hero', 'Héros'], ['legend', 'Légende']].map(([k, l]) => [k, `Cadeaux · ${l}`, `gifting/${k}.png`]),
+    accountAge: ['seed', 'sprout', 'bud', 'sapling', 'blossom', 'redwood', 'sequoia', 'bristlecone', 'stromatolite', 'primordial'].map((k) => [k, `Ancienneté · ${k}`, `account-age/${k}.svg`]),
+    streaming: ['newcomer', 'fledgling', 'breakout', 'standout', 'trendsetter', 'headliner', 'star', 'sensation', 'visionary', 'phenomenon'].map((k) => [k, `Streaming · ${k}`, `streaming/${k}.svg`]),
+    gameTime: ['casual', 'recreational', 'dedicated', 'committed', 'serious', 'devoted', 'seasoned', 'ironclad', 'unshakeable', 'eternal'].map((k) => [k, `Temps de jeu · ${k}`, `game-time/${k}.svg`]),
+    gameVariety: ['sampler', 'dabbler', 'enthusiast', 'ranger', 'explorer', 'adventurer', 'voyager', 'maverick', 'polymath', 'universalist'].map((k) => [k, `Variété de jeux · ${k}`, `game-variety/${k}.svg`]),
+  };
+  const SIMPLE = { nitro: ['Nitro', 'discord-nitro.svg'], nitroBasic: ['Nitro Basic', 'discord-nitro-basic.svg'], quest: ['Quête accomplie', 'quest.png'], orbs: ['Apprenti des Orbes', 'orb.svg'], legacyName: ['Ancien nom', 'username.png'], clown: ['Clown (édition limitée)', 'special/discord-lootbox.svg'], meadow: ['Last Meadow', 'last-meadow.png'],
+    staff: ['Staff Discord', 'discord-staff.svg'], partner: ['Partenaire', 'discord-partner.svg'], events: ['HypeSquad Events', 'hype-squad-events.svg'], bravery: ['HypeSquad Bravery', 'hype-squad-bravery.svg'], brilliance: ['HypeSquad Brilliance', 'hype-squad-brilliance.svg'], balance: ['HypeSquad Balance', 'hype-squad-balance.svg'],
+    early: ['Early Supporter', 'discord-early-supporter.svg'], bug1: ['Bug Hunter', 'discord-bug-hunter-green.svg'], bug2: ['Bug Hunter Gold', 'discord-bug-hunter-gold.svg'], botdev: ['Développeur de bot vérifié', 'discord-bot-dev.svg'], mod: ['Modérateur certifié', 'discord-mod.svg'], activedev: ['Développeur actif', 'active-developer.svg'] };
+  function declaredBadges(keys, already) {
+    const out = [];
+    for (const key of keys) {
+      const [group, val] = key.split(':');
+      let name, asset;
+      if (TIERS[group]) { const t = TIERS[group].find((x) => x[0] === val); if (!t) continue; [, name, asset] = t; }
+      else if (SIMPLE[group]) [name, asset] = SIMPLE[group];
+      else continue;
+      if (already.has(name)) continue;
+      already.add(name);
+      out.push(badge(name, BADGE_CDN + asset));
+    }
+    return out;
+  }
   function renderDiscord(s) {
     const box = $('discord');
     box.hidden = !s.discordId;
@@ -372,9 +400,11 @@
     const custom = (lanyard.activities || []).find((a) => a.type === 4);
     $('dcTag').replaceChildren(`@${u.username} · ${({ online: 'en ligne', idle: 'absent', dnd: 'ne pas déranger' })[st] || 'hors ligne'}`,
       custom && (custom.state || (custom.emoji && custom.emoji.name)) ? el('span', { class: 'dc-custom' }, custom.emoji && custom.emoji.id ? el('img', { src: `https://cdn.discordapp.com/emojis/${custom.emoji.id}.${custom.emoji.animated ? 'gif' : 'png'}?size=20`, alt: '' }) : (custom.emoji && custom.emoji.name ? custom.emoji.name + ' ' : ''), custom.state || '') : null);
-    const badges = FLAGS.filter(([bit]) => Number(u.public_flags || 0) & bit).map(([, name, icon]) => badge(name, icon));
-    if (u.premium_type) badges.push(badge('Nitro', NITRO));
-    $('dcBadges').replaceChildren(...badges);
+    const auto = FLAGS.filter(([bit]) => Number(u.public_flags || 0) & bit);
+    const already = new Set(auto.map(([, name]) => name));
+    const badges = auto.map(([, name, icon]) => badge(name, icon));
+    if (u.premium_type) { badges.push(badge('Nitro', NITRO)); already.add('Nitro'); }
+    $('dcBadges').replaceChildren(...badges, ...declaredBadges(s.badgesDiscord, already));
     // Rich Presence : Spotify, sinon le premier jeu / activité
     const pres = $('dcPresence');
     const acts = Array.isArray(lanyard.activities) ? lanyard.activities.filter((a) => a.type !== 4) : [];
