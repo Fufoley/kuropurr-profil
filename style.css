@@ -214,6 +214,7 @@ a.member:hover { border-color: var(--accent); }
 .gprofile a:hover { text-decoration: underline; }
 .gprofile .muted { font-size: 12px; }
 .pstats.six { grid-template-columns: repeat(6, 1fr); }
+.pstats.three { grid-template-columns: repeat(3, 1fr); }
 .pstats.five { grid-template-columns: repeat(5, 1fr); }
 .pstat.static { cursor: default; }
 .pstat.static:hover { background: none; }
@@ -262,7 +263,7 @@ a.member:hover { border-color: var(--accent); }
 @media (max-width: 760px) {
   .grid, .grid-projects { grid-template-columns: 1fr; }
   .top { grid-template-columns: 1fr; justify-items: center; }
-  .pstats, .pstats.five, .pstats.six { grid-template-columns: repeat(2, 1fr); }
+  .pstats, .pstats.five, .pstats.six, .pstats.three { grid-template-columns: repeat(2, 1fr); }
   .ggrid { grid-template-columns: repeat(2, 1fr); }
   .scroller { max-height: none; }
   .links { grid-template-columns: repeat(2, 1fr); }
