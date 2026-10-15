@@ -3,7 +3,7 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 (function () {
   'use strict';
-  const SITE_VERSION = '1.6';
+  const SITE_VERSION = '1.7';
   const CONFIG = window.KP_PROFIL || {};
   const REFRESH_MS = 8000;
   const OFFLINE_AFTER_MS = 3 * 60 * 1000;
@@ -20,14 +20,16 @@
   };
 
   let status = null, lanyard = null;
-  let projectFilter = 'all', postTag = '';
+  let projectFilter = 'all', postTag = '', lib = 'steam', steamFilter = 'all';
   let page = location.hash.replace('#', '') || 'profil';
 
-  const DEFAULTS = { enLigne: false, enLigneDepuis: null, nePasDeranger: false, majLe: null, versionClient: '', pseudo: '', avatar: '', description: '', badges: [], discordId: '', badgesDiscord: [], liens: [], fond: '', accent: '', jeu: { actif: false }, musique: { actif: false }, activites: [], projets: [], posts: [], tagsPosts: [], compteur: false };
+  const DEFAULTS = { enLigne: false, enLigneDepuis: null, nePasDeranger: false, majLe: null, versionClient: '', pseudo: '', avatar: '', description: '', badges: [], discordId: '', badgesDiscord: [], liens: [], fond: '', accent: '', jeu: { actif: false }, musique: { actif: false }, activites: [], projets: [], posts: [], tagsPosts: [], steam: null, roblox: null, compteur: false };
   const normalize = (raw) => {
     const s = { ...DEFAULTS, ...(raw && typeof raw === 'object' ? raw : {}) };
     for (const k of ['jeu', 'musique']) if (!s[k] || typeof s[k] !== 'object') s[k] = { actif: false };
     for (const k of ['badges', 'liens', 'activites', 'projets', 'posts', 'tagsPosts', 'badgesDiscord']) if (!Array.isArray(s[k])) s[k] = [];
+    if (!s.steam || !Array.isArray(s.steam.jeux)) s.steam = null; else if (!Array.isArray(s.steam.souhaits)) s.steam.souhaits = [];
+    if (!s.roblox || !Array.isArray(s.roblox.jeux)) s.roblox = null;
     return s;
   };
   function sources() {
@@ -138,6 +140,7 @@
     renderLinks(s);
     renderPosts(s);
     renderProjects(s);
+    renderGames(s);
     showPage(page);
 
     $('updated').textContent = s.majLe ? `Dernière mise à jour : ${when(s.majLe)}` : 'Pas encore de mise à jour';
@@ -266,6 +269,65 @@
   function zoom(src) {
     const z = el('div', { class: 'zoom', onclick: () => z.remove() }, el('img', { src, alt: '' }));
     document.body.append(z);
+  }
+
+  /* ---------------- Jeux ---------------- */
+  const hours = (h) => h >= 1 ? `${Math.round(h * 10) / 10} h` : h > 0 ? `${Math.round(h * 60)} min` : 'jamais lancé';
+  $('libSwitch').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; lib = b.dataset.lib; renderGames(status); });
+  const gprofile = (p, sub) => p ? el('div', { class: 'gprofile' },
+    p.avatar ? el('img', { src: p.avatar, alt: '', onerror: (e) => e.target.replaceWith(el('span', { class: 'ini' }, String(p.nom || '?').charAt(0))) }) : el('span', { class: 'ini' }, String(p.nom || '?').charAt(0)),
+    el('div', { class: 'gt' }, el('strong', {}, p.nom || p.pseudo), sub ? el('span', { class: 'muted' }, sub) : null, p.url ? el('a', { href: p.url, target: '_blank', rel: 'noopener' }, 'Voir le profil ↗') : null)) : null;
+  const stat = (label, value, id, on, onclick) => el('button', { class: `pstat ${on ? 'on' : ''} ${onclick ? '' : 'static'}`, type: 'button', onclick: onclick || null }, el('span', {}, label), el('b', { class: typeof value === 'string' && value.length > 6 ? 'txt' : '' }, String(value)));
+  function steamRow(g, wish) {
+    const tag = wish ? ['souhait', 'Souhait'] : g.installe ? ['installe', 'Installé'] : ['noninstalle', 'Non installé'];
+    return el('a', { class: 'game', href: `https://store.steampowered.com/app/${g.appid}`, target: '_blank', rel: 'noopener' },
+      el('span', { class: 'cov' }, el('img', { src: `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/header.jpg`, alt: '', loading: 'lazy', onerror: (e) => e.target.replaceWith(String(g.nom).charAt(0)) })),
+      el('div', { class: 'gt' }, el('strong', {}, g.nom), g.description ? el('p', {}, g.description) : null,
+        wish ? null : el('span', { class: 'meta' }, `${hours(g.heures)}${g.heures2s > 0 ? ` · ${hours(g.heures2s)} ces 2 semaines` : ''}${g.dernier ? ` · dernière session ${when(g.dernier)}` : ''}`)),
+      el('span', { class: `st ${tag[0]}` }, tag[1]));
+  }
+  function gameList(rows, title, limit) {
+    const box = el('div', { class: 'games' }, rows.slice(0, limit));
+    const more = rows.length > limit ? el('button', { class: 'more', type: 'button', onclick: () => {
+      const search = el('input', { class: 'gsearch', type: 'search', placeholder: 'Chercher un jeu…' });
+      const list = el('div', { class: 'games' }, rows);
+      search.addEventListener('input', () => { const q = search.value.trim().toLowerCase(); for (const r of list.children) r.hidden = q && !r.textContent.toLowerCase().includes(q); });
+      openSheet(title, [search, list]);
+    } }, `Voir plus (${rows.length - limit})`) : null;
+    return [box, more].filter(Boolean);
+  }
+  function renderGames(s) {
+    for (const b of $('libSwitch').children) b.classList.toggle('on', b.dataset.lib === lib);
+    const body = $('libBody');
+    if (lib === 'minecraft') { body.replaceChildren(el('div', { class: 'wip' }, el('strong', {}, 'Encore en développement…'), 'Le launcher Minecraft de KuroPurr arrive : ma bibliothèque s’affichera ici.')); return; }
+    if (lib === 'roblox') {
+      const r = s.roblox;
+      if (!r) { body.replaceChildren(el('p', { class: 'empty' }, 'Pas de bibliothèque Roblox pour l’instant.')); return; }
+      const rows = r.jeux.map((g) => el(g.url ? 'a' : 'div', { class: 'game', href: g.url || null, target: g.url ? '_blank' : null, rel: 'noopener' },
+        el('span', { class: 'cov sq' }, g.image ? el('img', { src: g.image, alt: '', loading: 'lazy', onerror: (e) => e.target.replaceWith(String(g.nom).charAt(0)) }) : String(g.nom).charAt(0)),
+        el('div', { class: 'gt' }, el('strong', {}, g.nom), el('span', { class: 'meta' }, `${g.sessions} session${g.sessions > 1 ? 's' : ''} · ${hours(g.heures)}${g.dernier ? ` · dernière ${when(g.dernier)}` : ''}`))));
+      body.replaceChildren(gprofile(r.profil, r.profil && r.profil.pseudo ? `@${r.profil.pseudo}` : null),
+        el('div', { class: 'pstats' }, stat('Jeux', r.total), stat('Heures', hours(r.heures)), stat('Sessions', r.sessions || 0), stat('Dernière', r.derniere ? when(r.derniere) : '—')),
+        el('hr'), el('h2', {}, 'Joués récemment'),
+        ...(rows.length ? gameList(rows, 'Mes jeux Roblox', 5) : [el('p', { class: 'empty' }, 'Rien vu pour l’instant.')]),
+        el('p', { class: 'muted small', style: 'margin:10px 0 0' }, 'Temps et sessions vus par KuroPurr (Roblox ne fournit pas le temps de jeu).'));
+      return;
+    }
+    const st = s.steam;
+    if (!st) { body.replaceChildren(el('p', { class: 'empty' }, 'Pas de bibliothèque Steam pour l’instant.')); return; }
+    const notInstalled = st.total - st.installes;
+    const pick = (id) => { steamFilter = steamFilter === id ? 'all' : id; renderGames(status); };
+    let rows, title;
+    if (steamFilter === 'wish') { rows = st.souhaits.map((g) => steamRow(g, true)); title = 'Liste de souhaits'; }
+    else { const list = st.jeux.filter((g) => steamFilter === 'installed' ? g.installe : steamFilter === 'notinstalled' ? !g.installe : true); rows = list.map((g) => steamRow(g, false)); title = steamFilter === 'installed' ? 'Jeux installés' : steamFilter === 'notinstalled' ? 'Jeux non installés' : 'Ma bibliothèque Steam'; }
+    body.replaceChildren(gprofile(st.profil, `${st.heures} h de jeu au total${st.derniere ? ` · dernière session ${when(st.derniere)}` : ''}`),
+      el('div', { class: 'pstats' },
+        stat('Total', st.total, 'all', steamFilter === 'all', () => pick('all')),
+        stat('Installés', st.installes, 'installed', steamFilter === 'installed', () => pick('installed')),
+        stat('Non installés', notInstalled, 'notinstalled', steamFilter === 'notinstalled', () => pick('notinstalled')),
+        stat('Souhaits', st.souhaits.length, 'wish', steamFilter === 'wish', () => pick('wish'))),
+      el('hr'),
+      ...(rows.length ? gameList(rows, title, 5) : [el('p', { class: 'empty' }, steamFilter === 'wish' ? 'Liste de souhaits vide ou privée.' : 'Aucun jeu.')]));
   }
 
   /* ---------------- Projets ---------------- */
