@@ -3,7 +3,7 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 (function () {
   'use strict';
-  const SITE_VERSION = '1.9';
+  const SITE_VERSION = '2.0';
   const CONFIG = window.KP_PROFIL || {};
   const REFRESH_MS = 8000;
   const OFFLINE_AFTER_MS = 3 * 60 * 1000;
@@ -21,7 +21,7 @@
 
   let status = null, lanyard = null;
   let projectFilter = 'all', postTag = '', lib = 'steam', steamFilter = 'all';
-  const gstate = { steam: { q: '', genre: '', sort: 'hours', desc: true }, roblox: { q: '', genre: '', sort: 'hours', desc: true }, anime: { q: '', genre: '', sort: 'score', desc: true }, manga: { q: '', genre: '', sort: 'score', desc: true } };
+  const gstate = { steam: { q: '', genre: '', sort: 'hours', desc: true }, roblox: { q: '', genre: '', sort: 'hours', desc: true }, anime: { q: '', genre: '', sort: 'score', desc: true }, manga: { q: '', genre: '', sort: 'score', desc: true }, series: { q: '', genre: '', sort: 'updated', desc: true }, films: { q: '', genre: '', sort: 'updated', desc: true } };
   let aniKind = 'anime', aniFilter = 'all';
   let page = location.hash.replace('#', '') || 'profil';
 
@@ -281,7 +281,7 @@
     p.avatar ? el('img', { src: p.avatar, alt: '', onerror: (e) => e.target.replaceWith(el('span', { class: 'ini' }, String(p.nom || '?').charAt(0))) }) : el('span', { class: 'ini' }, String(p.nom || '?').charAt(0)),
     el('div', { class: 'gt' }, el('strong', {}, p.nom || p.pseudo), sub ? el('span', { class: 'muted' }, sub) : null, p.url ? el('a', { href: p.url, target: '_blank', rel: 'noopener' }, 'Voir le profil ↗') : null)) : null;
   const stat = (label, value, id, on, onclick) => el('button', { class: `pstat ${on ? 'on' : ''} ${onclick ? '' : 'static'}`, type: 'button', onclick: onclick || null }, el('span', {}, label), el('b', { class: typeof value === 'string' && value.length > 6 ? 'txt' : '' }, String(value)));
-  const SORTS = { steam: [['hours', 'Heures de jeu'], ['recent', 'Heures récentes'], ['last', 'Dernière session'], ['name', 'Nom']], roblox: [['hours', 'Temps de jeu'], ['sessions', 'Sessions'], ['last', 'Dernière session'], ['name', 'Nom']], anime: [['score', 'Ma note'], ['mean', 'Note MAL'], ['progress', 'Épisodes vus'], ['updated', 'Dernière mise à jour'], ['year', 'Année'], ['name', 'Titre']], manga: [['score', 'Ma note'], ['mean', 'Note MAL'], ['progress', 'Chapitres lus'], ['updated', 'Dernière mise à jour'], ['year', 'Année'], ['name', 'Titre']] };
+  const SORTS = { steam: [['hours', 'Heures de jeu'], ['recent', 'Heures récentes'], ['last', 'Dernière session'], ['name', 'Nom']], roblox: [['hours', 'Temps de jeu'], ['sessions', 'Sessions'], ['last', 'Dernière session'], ['name', 'Nom']], anime: [['score', 'Ma note'], ['mean', 'Note MAL'], ['progress', 'Épisodes vus'], ['updated', 'Dernière mise à jour'], ['year', 'Année'], ['name', 'Titre']], manga: [['score', 'Ma note'], ['mean', 'Note MAL'], ['progress', 'Chapitres lus'], ['updated', 'Dernière mise à jour'], ['year', 'Année'], ['name', 'Titre']], series: [['updated', 'Dernier épisode vu'], ['score', 'Ma note'], ['mean', 'Note Trakt'], ['progress', 'Épisodes vus'], ['year', 'Année'], ['name', 'Titre']], films: [['updated', 'Dernier visionnage'], ['score', 'Ma note'], ['mean', 'Note Trakt'], ['plays', 'Fois vu'], ['year', 'Année'], ['name', 'Titre']] };
   function steamCard(g, wish) {
     const tag = wish ? ['souhait', 'Souhait'] : g.installe ? ['installe', 'Installé'] : ['noninstalle', 'Non installé'];
     const img = el('img', { src: `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/library_600x900.jpg`, alt: '', loading: 'lazy' });
@@ -303,7 +303,7 @@
   /** Barre d'outils : recherche, genre, tri, ordre. */
   function tools(kind, genres) {
     const st = gstate[kind];
-    const redo = () => (kind === 'anime' || kind === 'manga' ? renderAnime(status) : renderGames(status));
+    const redo = () => (kind === 'steam' || kind === 'roblox' ? renderGames(status) : renderAnime(status));
     const q = el('input', { class: 'gsearch', type: 'search', placeholder: 'Chercher…', value: st.q, oninput: (e) => { st.q = e.target.value; redo(); } });
     const genre = el('select', { class: 'gsel', onchange: (e) => { st.genre = e.target.value; redo(); } }, el('option', { value: '' }, 'Tous les genres'), ...genres.map((g) => el('option', { value: g, selected: st.genre === g }, g)));
     const sort = el('select', { class: 'gsel', onchange: (e) => { st.sort = e.target.value; redo(); } }, ...SORTS[kind].map(([v, l]) => el('option', { value: v, selected: st.sort === v }, l)));
@@ -353,47 +353,58 @@
     if (active) { const q = body.querySelector('.gsearch'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
   }
 
-  /* ---------------- Anime / Manga (MyAnimeList) ---------------- */
+  /* ---------------- Médiathèque : Anime / Manga (MyAnimeList), Séries / Films (Trakt) ---------------- */
   const ANI_STATUS = { watching: ['watching', '👁', 'En cours', 'En lecture'], completed: ['completed', '✨', 'Terminé', 'Terminé'], on_hold: ['onhold', '⏸', 'En pause', 'En pause'], dropped: ['dropped', '✖', 'Abandonné', 'Abandonné'], plan_to_watch: ['plan', '🕒', 'Prévu', 'Prévu'] };
-  const TYPES = { tv: 'TV', movie: 'Film', ova: 'OVA', ona: 'ONA', special: 'Spécial', music: 'Musique', manga: 'Manga', novel: 'Roman', light_novel: 'Light novel', one_shot: 'One-shot', manhwa: 'Manhwa', manhua: 'Manhua', doujinshi: 'Dōjinshi' };
-  function aniCard(a, manga) {
-    const st = ANI_STATUS[a.statut] || ['plan', '•', a.statut, a.statut];
+  const FILM_STATUS = { completed: ['completed', '✨', 'Vu'], plan_to_watch: ['plan', '🕒', 'À voir'] };
+  const TYPES = { series: 'Série', film: 'Film', tv: 'TV', movie: 'Film', ova: 'OVA', ona: 'ONA', special: 'Spécial', music: 'Musique', manga: 'Manga', novel: 'Roman', light_novel: 'Light novel', one_shot: 'One-shot', manhwa: 'Manhwa', manhua: 'Manhua', doujinshi: 'Dōjinshi' };
+  function aniCard(a, kind) {
+    const manga = kind === 'manga', film = kind === 'films';
+    const st = (film ? FILM_STATUS[a.statut] : ANI_STATUS[a.statut]) || ['plan', '•', a.statut, a.statut];
     const unit = manga ? 'ch.' : 'eps';
-    const prog = `${a.progression}${a.total ? `/${a.total}` : ''} ${unit}`;
+    const prog = film ? (a.vues ? `vu ${a.vues} fois` : (a.duree ? `${a.duree} min` : '')) : `${a.progression}${a.total ? `/${a.total}` : ''} ${unit}`;
     return el('a', { class: 'gcard', href: a.url, target: '_blank', rel: 'noopener', title: a.titre },
       el('span', { class: 'cov' }, String(a.titre).charAt(0), a.image ? el('img', { src: a.image, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }) : null, el('span', { class: 'nm' }, el('span', {}, a.titre))),
       el('div', { class: 'gi' },
         el('div', { class: 'nums' }, el('span', { class: 'star' }, '★ ', el('b', {}, a.note ? a.note : 'N/A')), el('span', {}, prog)),
-        el('p', {}, [TYPES[a.type] || a.type, a.annee, a.moyenne ? `MAL ${a.moyenne}` : '', ...(a.genres || []).slice(0, 2)].filter(Boolean).join(' · ')),
+        el('p', {}, [TYPES[a.type] || a.type, a.annee, a.moyenne ? `${film || kind === 'series' ? 'Trakt' : 'MAL'} ${a.moyenne}` : '', ...(a.genres || []).slice(0, 2)].filter(Boolean).join(' · ')),
         el('span', { class: `st ${st[0]}` }, `${st[1]} ${manga ? st[3] : st[2]}`)));
   }
   function renderAnime(s) {
     for (const b of $('aniSwitch').children) b.classList.toggle('on', b.dataset.kind === aniKind);
     const body = $('aniBody');
     const active = document.activeElement && document.activeElement.classList.contains('gsearch');
-    const root = s.anime;
+    const trakt = aniKind === 'series' || aniKind === 'films';
+    const root = trakt ? s.trakt : s.anime;
     const data = root && root[aniKind];
-    if (!data || !data.liste) { body.replaceChildren(el('p', { class: 'empty' }, aniKind === 'manga' ? 'Pas de liste de mangas pour l’instant.' : 'Pas de liste d’animes pour l’instant.')); return; }
-    const manga = aniKind === 'manga';
+    const EMPTY = { anime: 'Pas de liste d’animes pour l’instant.', manga: 'Pas de liste de mangas pour l’instant.', series: 'Pas de séries pour l’instant.', films: 'Pas de films pour l’instant.' };
+    if (!data || !data.liste) { body.replaceChildren(el('p', { class: 'empty' }, EMPTY[aniKind])); return; }
+    const manga = aniKind === 'manga', film = aniKind === 'films';
     const p = root.profil || {};
-    const ps = (manga ? p.manga : p.anime) || {};
-    const sub = [ps.jours ? `${ps.jours} jours ${manga ? 'de lecture' : 'de visionnage'}` : '', ps.note ? `note moyenne ${ps.note}` : '', root.maj ? `liste lue ${when(root.maj)}` : ''].filter(Boolean).join(' · ');
+    const ps = p[aniKind] || {};
+    const sub = trakt
+      ? [ps.nombre ? `${ps.nombre} ${film ? 'films vus' : 'séries'}` : '', ps.episodes ? `${ps.episodes} épisodes` : '', ps.heures ? `${ps.heures} h` : '', root.maj ? `lu ${when(root.maj)}` : ''].filter(Boolean).join(' · ')
+      : [ps.jours ? `${ps.jours} jours ${manga ? 'de lecture' : 'de visionnage'}` : '', ps.note ? `note moyenne ${ps.note}` : '', root.maj ? `liste lue ${when(root.maj)}` : ''].filter(Boolean).join(' · ');
     const pick = (id) => { aniFilter = aniFilter === id ? 'all' : id; renderAnime(status); };
     const st = data.stats || {};
     const base = aniFilter === 'all' ? data.liste : data.liste.filter((a) => a.statut === aniFilter);
     const genres = [...new Set(base.flatMap((a) => a.genres || []))].sort();
-    const list = applyTools(aniKind, base, (a, k) => k === 'name' ? String(a.titre) : k === 'mean' ? a.moyenne || 0 : k === 'progress' ? a.progression || 0 : k === 'updated' ? Date.parse(a.maj || 0) : k === 'year' ? a.annee || 0 : a.note || 0);
+    const list = applyTools(aniKind, base, (a, k) => k === 'name' ? String(a.titre) : k === 'mean' ? a.moyenne || 0 : k === 'progress' ? a.progression || 0 : k === 'plays' ? a.vues || 0 : k === 'updated' ? Date.parse(a.maj || 0) : k === 'year' ? a.annee || 0 : a.note || 0);
+    const counters = film
+      ? [stat('Total', st.total || 0, 'all', aniFilter === 'all', () => pick('all')), stat('Vus', st.termines || 0, 'completed', aniFilter === 'completed', () => pick('completed')), stat('À voir', st.prevus || 0, 'plan_to_watch', aniFilter === 'plan_to_watch', () => pick('plan_to_watch'))]
+      : trakt
+        ? [stat('Total', st.total || 0, 'all', aniFilter === 'all', () => pick('all')), stat('En cours', st.enCours || 0, 'watching', aniFilter === 'watching', () => pick('watching')), stat('Terminées', st.termines || 0, 'completed', aniFilter === 'completed', () => pick('completed')), stat('À voir', st.prevus || 0, 'plan_to_watch', aniFilter === 'plan_to_watch', () => pick('plan_to_watch'))]
+        : [stat('Total', st.total || 0, 'all', aniFilter === 'all', () => pick('all')),
+          stat(manga ? 'En lecture' : 'En cours', st.enCours || 0, 'watching', aniFilter === 'watching', () => pick('watching')),
+          stat('Terminés', st.termines || 0, 'completed', aniFilter === 'completed', () => pick('completed')),
+          stat('En pause', st.enPause || 0, 'on_hold', aniFilter === 'on_hold', () => pick('on_hold')),
+          stat('Abandonnés', st.abandonnes || 0, 'dropped', aniFilter === 'dropped', () => pick('dropped')),
+          stat('Prévus', st.prevus || 0, 'plan_to_watch', aniFilter === 'plan_to_watch', () => pick('plan_to_watch'))];
+    const foot = film ? '' : trakt ? `${st.episodes || 0} épisodes vus au total.` : manga ? `${st.chapitres || 0} chapitres et ${st.volumes || 0} volumes lus au total.` : `${st.episodes || 0} épisodes vus au total.`;
     body.replaceChildren(gprofile({ nom: p.pseudo || root.utilisateur, avatar: p.avatar, url: p.url }, sub || null), el('hr'),
-      el('div', { class: 'pstats six' },
-        stat('Total', st.total || 0, 'all', aniFilter === 'all', () => pick('all')),
-        stat(manga ? 'En lecture' : 'En cours', st.enCours || 0, 'watching', aniFilter === 'watching', () => pick('watching')),
-        stat('Terminés', st.termines || 0, 'completed', aniFilter === 'completed', () => pick('completed')),
-        stat('En pause', st.enPause || 0, 'on_hold', aniFilter === 'on_hold', () => pick('on_hold')),
-        stat('Abandonnés', st.abandonnes || 0, 'dropped', aniFilter === 'dropped', () => pick('dropped')),
-        stat('Prévus', st.prevus || 0, 'plan_to_watch', aniFilter === 'plan_to_watch', () => pick('plan_to_watch'))),
+      el('div', { class: `pstats ${counters.length === 6 ? 'six' : counters.length === 3 ? 'three' : ''}` }, counters),
       el('hr'), tools(aniKind, genres),
-      scroller(list.map((a) => aniCard(a, manga)), 'Rien ici.'),
-      el('p', { class: 'muted small', style: 'margin:10px 0 0' }, manga ? `${st.chapitres || 0} chapitres et ${st.volumes || 0} volumes lus au total.` : `${st.episodes || 0} épisodes vus au total.`));
+      scroller(list.map((a) => aniCard(a, aniKind)), 'Rien ici.'),
+      ...(foot ? [el('p', { class: 'muted small', style: 'margin:10px 0 0' }, foot)] : []));
     if (active) { const q = body.querySelector('.gsearch'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
   }
   $('aniSwitch').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; aniKind = b.dataset.kind; aniFilter = 'all'; renderAnime(status); });
