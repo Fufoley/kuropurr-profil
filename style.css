@@ -161,6 +161,10 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 .modal-head .pic img { width: 100%; height: 100%; object-fit: cover; }
 .modal-head h1 { font-size: 22px; }
 .modal .md { margin: 14px 0; }
+.sheet-title { font-size: 20px; margin-bottom: 14px; }
+.modal .day + .day { margin-top: 14px; }
+.modal .row + .row { margin-top: 8px; }
+.modal .links { grid-template-columns: repeat(3, 1fr); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { --c: var(--accent); display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--box-2); color: var(--text); text-decoration: none; }
 .chip:hover { border-color: var(--c); }
