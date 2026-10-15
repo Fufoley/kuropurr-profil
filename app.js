@@ -3,7 +3,7 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 (function () {
   'use strict';
-  const SITE_VERSION = '1.3';
+  const SITE_VERSION = '1.4';
   const CONFIG = window.KP_PROFIL || {};
   const REFRESH_MS = 8000;
   const OFFLINE_AFTER_MS = 3 * 60 * 1000;
@@ -20,14 +20,14 @@
   };
 
   let status = null, lanyard = null;
-  let projectFilter = 'all';
+  let projectFilter = 'all', postTag = '';
   let page = location.hash.replace('#', '') || 'profil';
 
-  const DEFAULTS = { enLigne: false, enLigneDepuis: null, nePasDeranger: false, majLe: null, versionClient: '', pseudo: '', avatar: '', description: '', badges: [], discordId: '', liens: [], fond: '', accent: '', jeu: { actif: false }, musique: { actif: false }, activites: [], portfolio: '', projets: [], compteur: false };
+  const DEFAULTS = { enLigne: false, enLigneDepuis: null, nePasDeranger: false, majLe: null, versionClient: '', pseudo: '', avatar: '', description: '', badges: [], discordId: '', liens: [], fond: '', accent: '', jeu: { actif: false }, musique: { actif: false }, activites: [], projets: [], posts: [], tagsPosts: [], compteur: false };
   const normalize = (raw) => {
     const s = { ...DEFAULTS, ...(raw && typeof raw === 'object' ? raw : {}) };
     for (const k of ['jeu', 'musique']) if (!s[k] || typeof s[k] !== 'object') s[k] = { actif: false };
-    for (const k of ['badges', 'liens', 'activites', 'projets']) if (!Array.isArray(s[k])) s[k] = [];
+    for (const k of ['badges', 'liens', 'activites', 'projets', 'posts', 'tagsPosts']) if (!Array.isArray(s[k])) s[k] = [];
     return s;
   };
   function sources() {
@@ -136,7 +136,7 @@
     renderDiscord(s);
     renderActivity(s, online);
     renderLinks(s);
-    $('portfolio').innerHTML = markdown(s.portfolio);
+    renderPosts(s);
     renderProjects(s);
     showPage(page);
 
@@ -228,6 +228,45 @@
     for (const m of document.querySelectorAll('[data-page]')) if (m.tagName === 'MAIN') m.hidden = m.dataset.page !== id;
   }
   $('nav').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; history.replaceState(null, '', `#${b.dataset.page}`); showPage(b.dataset.page); });
+
+  /* ---------------- Posts ---------------- */
+  const POSTS_SHORT = 3;
+  const postDate = (iso) => { const t = Date.parse(iso); return isToday(iso) ? `aujourd’hui à ${clock.format(t)}` : new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: new Date(t).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' }); };
+  const excerpt = (md) => String(md || '').replace(/[#*_`>~\[\]]/g, '').replace(/\(https?:[^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+  function postCard(x) {
+    return el('button', { class: 'post', type: 'button', onclick: () => openPost(x) },
+      el('div', { class: 'ph' }, el('span', {}, x.epingle ? el('span', { class: 'pin' }, '📌 ') : null, postDate(x.date)), x.tags.length ? el('span', { class: 'tagrow' }, x.tags.map((t) => el('span', {}, t))) : null),
+      x.images.length ? el('img', { class: 'cover', src: x.images[0], alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }) : null,
+      x.titre ? el('strong', {}, x.titre) : null,
+      x.texte ? el('p', {}, excerpt(x.texte)) : null);
+  }
+  function renderPosts(s) {
+    const tags = s.tagsPosts.length ? s.tagsPosts : [...new Set(s.posts.flatMap((x) => x.tags))];
+    $('ptags').replaceChildren(...(tags.length ? [['', 'Tous'], ...tags.map((t) => [t, t])].map(([id, label]) => el('button', { class: `ptag ${postTag === id ? 'on' : ''}`, type: 'button', onclick: () => { postTag = id; renderPosts(status); } }, label)) : []));
+    const list = postTag ? s.posts.filter((x) => x.tags.includes(postTag)) : s.posts;
+    const preview = list.slice(0, POSTS_SHORT);
+    $('posts').replaceChildren(...(preview.length ? preview.map(postCard) : [el('p', { class: 'empty' }, s.posts.length ? 'Aucun post avec ce tag.' : 'Pas encore de post.')]));
+    const m = $('postsMore');
+    m.hidden = list.length <= POSTS_SHORT;
+    m.textContent = `Voir plus (${list.length - POSTS_SHORT})`;
+    m.onclick = () => openSheet(postTag ? `Posts · ${postTag}` : 'Tous les posts', [el('div', { class: 'posts' }, list.map(postCard))]);
+  }
+  function openPost(x) {
+    const imgs = x.images.map((src) => el('img', { class: x.images.length === 1 ? 'one' : '', src, alt: '', loading: 'lazy', onclick: () => zoom(src), onerror: (e) => e.target.remove() }));
+    const body = $('modalBody');
+    body.replaceChildren(...[
+      el('div', { class: 'ph', style: 'display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)' }, el('span', {}, x.epingle ? '📌 ' : '', postDate(x.date)), x.tags.length ? el('span', { class: 'tagrow' }, x.tags.map((t) => el('span', {}, t))) : null),
+      x.titre ? el('h1', { class: 'sheet-title', style: 'margin:6px 0 0' }, x.titre) : null,
+      imgs.length ? el('div', { class: 'gallery' }, imgs) : null,
+      el('div', { class: 'md' }),
+    ].filter(Boolean));
+    body.querySelector('.md').innerHTML = markdown(x.texte);
+    $('modal').hidden = false;
+  }
+  function zoom(src) {
+    const z = el('div', { class: 'zoom', onclick: () => z.remove() }, el('img', { src, alt: '' }));
+    document.body.append(z);
+  }
 
   /* ---------------- Projets ---------------- */
   const STATUS = { en_cours: 'En cours', planifie: 'Planifié', termine: 'Terminé' };
