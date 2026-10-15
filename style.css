@@ -237,13 +237,18 @@ a.member:hover { border-color: var(--accent); }
 .gcard .cov { position: relative; aspect-ratio: 2 / 3; background: var(--box); display: grid; place-items: center; font-size: 34px; font-weight: 800; color: var(--accent); }
 .gcard .cov.sq { aspect-ratio: 1; }
 .gcard .cov img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.gcard .cov .nm { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 10px 8px; font-size: 13px; font-weight: 700; color: #fff; background: linear-gradient(transparent, rgba(0, 0, 0, .85)); text-shadow: 0 1px 2px rgba(0,0,0,.6); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gcard .cov .nm { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 10px 8px; font-size: 13px; font-weight: 700; color: #fff; background: linear-gradient(transparent, rgba(0, 0, 0, .85)); text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.gcard .cov .nm > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .gcard .gi { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
 .gcard .nums { display: flex; justify-content: space-between; gap: 6px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .gcard .nums b { color: var(--text); font-weight: 600; }
 .gcard p { margin: 0; font-size: 11px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .gcard .st { align-self: flex-start; }
 .st.installe { --c: #3ba55d; } .st.noninstalle { --c: #5a6460; } .st.souhait { --c: #e5c48f; }
+.st.watching { --c: #2e9ad9; } .st.completed { --c: #3ba55d; } .st.onhold { --c: #faa61a; } .st.dropped { --c: #ed4245; } .st.plan { --c: #8d958b; }
+.gcard .st.watching::before, .gcard .st.completed::before, .gcard .st.onhold::before, .gcard .st.dropped::before, .gcard .st.plan::before { display: none; }
+.gcard .nums .star { color: #f5c542; }
+.gcard .nums .star b { color: #f5c542; }
 .wip { text-align: center; padding: 40px 10px; color: var(--muted); }
 .wip strong { display: block; font-size: 20px; color: var(--text); margin-bottom: 6px; }
 
