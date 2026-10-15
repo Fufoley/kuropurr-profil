@@ -6,7 +6,7 @@
   <title>Profil</title>
   <meta name="description" content="Mon profil, mis à jour par KuroPurr." />
   <link rel="icon" href="logo.png" />
-  <link rel="stylesheet" href="style.css?v=0.15.1" />
+  <link rel="stylesheet" href="style.css?v=0.16.0" />
 </head>
 <body>
   <div class="bg" id="bg" aria-hidden="true"></div>
@@ -20,6 +20,7 @@
         <button class="on" data-page="profil" type="button">Profil</button>
         <button data-page="projets" type="button">Posts &amp; Projets</button>
         <button data-page="jeux" type="button">Jeux</button>
+        <button data-page="anime" type="button">Anime</button>
       </nav>
       <div class="top-right">
         <div class="box ver" title="Version de KuroPurr">KuroPurr <b id="verClient">—</b></div>
@@ -103,6 +104,16 @@
       </section>
     </main>
 
+    <main class="stage" data-page="anime" hidden>
+      <section class="box card">
+        <div class="switch" id="aniSwitch">
+          <button class="on" data-kind="anime" type="button">Anime</button>
+          <button data-kind="manga" type="button">Manga</button>
+        </div>
+        <div id="aniBody"></div>
+      </section>
+    </main>
+
     <!-- Fiche d'un projet -->
     <div class="modal" id="modal" hidden>
       <div class="box modal-box">
@@ -119,6 +130,6 @@
   </div>
 
   <script src="config.js"></script>
-  <script src="app.js?v=0.15.1"></script>
+  <script src="app.js?v=0.16.0"></script>
 </body>
 </html>
