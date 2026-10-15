@@ -3,7 +3,7 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 (function () {
   'use strict';
-  const SITE_VERSION = '1.2';
+  const SITE_VERSION = '1.3';
   const CONFIG = window.KP_PROFIL || {};
   const REFRESH_MS = 8000;
   const OFFLINE_AFTER_MS = 3 * 60 * 1000;
@@ -20,7 +20,7 @@
   };
 
   let status = null, lanyard = null;
-  let showAllHistory = false, showAllLinks = false, showAllNow = false, showAllProjects = false, projectFilter = 'all';
+  let projectFilter = 'all';
   let page = location.hash.replace('#', '') || 'profil';
 
   const DEFAULTS = { enLigne: false, enLigneDepuis: null, nePasDeranger: false, majLe: null, versionClient: '', pseudo: '', avatar: '', description: '', badges: [], discordId: '', liens: [], fond: '', accent: '', jeu: { actif: false }, musique: { actif: false }, activites: [], portfolio: '', projets: [], compteur: false };
@@ -166,34 +166,38 @@
     current = current.map((a) => a.type === 'musique' && s.musique.actif && s.musique.titre === a.nom ? { ...a, finPrevue: s.musique.fin } : a);
     current.sort((a, b) => (a.type === 'jeu' ? 0 : 1) - (b.type === 'jeu' ? 0 : 1));
     const past = all.filter((a) => a.fin);
-    const nowBox = $('now'), more = $('nowMore'), allBox = $('nowAll');
+    const nowBox = $('now'), more = $('nowMore');
+    $('nowAll').hidden = true;
     if (current.length) {
       $('nowTitle').textContent = 'Activité en cours';
       nowBox.replaceChildren(activityRow(current[0], true));
       more.hidden = current.length < 2;
-      more.textContent = showAllNow ? 'Masquer les autres activités' : `Voir toutes les activités en cours (${current.length})`;
-      allBox.hidden = !showAllNow || current.length < 2;
-      allBox.replaceChildren(...current.slice(1).map((a) => activityRow(a, false)));
+      more.textContent = `Voir toutes les activités en cours (${current.length})`;
+      more.onclick = () => openSheet('Activités en cours', current.map((a) => activityRow(a, false)));
     } else {
       $('nowTitle').textContent = 'Activité récente';
       nowBox.replaceChildren(past.length ? activityRow(past[0], true) : el('p', { class: 'empty' }, 'Rien pour l’instant.'));
-      more.hidden = true; allBox.hidden = true;
+      more.hidden = true;
       if (past.length) past.shift(); // déjà affichée au-dessus
     }
-    // Dernières activités : 3, puis 7 jours
+    // Dernières activités : 3 ; la fenêtre montre les 7 derniers jours, par jour
     const limit = Date.now() - HISTORY_DAYS * 86400000;
     const week = past.filter((a) => Date.parse(a.fin) >= limit);
-    const shown = showAllHistory ? week : week.slice(0, HISTORY_SHORT);
-    $('history').replaceChildren(...(shown.length ? shown.map((a) => el('li', {}, entryIcon(a, 'k'),
+    const histItem = (a) => el('li', {}, entryIcon(a, 'k'),
       el('span', { class: 't' }, entryName(a), el('span', {}, ` · ${[a.detail, a.source].filter(Boolean).join(' · ')}`)),
-      el('time', { datetime: a.debut, title: new Date(a.debut).toLocaleString('fr-FR') }, `${isToday(a.debut) ? clock.format(Date.parse(a.debut)) : dateFmt.format(Date.parse(a.debut))} · ${dur((Date.parse(a.fin) - Date.parse(a.debut)) / 1000)}`)))
-      : [el('li', { class: 'empty' }, 'Rien d’autre ces 7 derniers jours.')]));
+      el('time', { datetime: a.debut, title: new Date(a.debut).toLocaleString('fr-FR') }, `${isToday(a.debut) ? clock.format(Date.parse(a.debut)) : dateFmt.format(Date.parse(a.debut))} · ${dur((Date.parse(a.fin) - Date.parse(a.debut)) / 1000)}`));
+    const shown = week.slice(0, HISTORY_SHORT);
+    $('history').replaceChildren(...(shown.length ? shown.map(histItem) : [el('li', { class: 'empty' }, 'Rien d’autre ces 7 derniers jours.')]));
     const hm = $('historyMore');
     hm.hidden = week.length <= HISTORY_SHORT;
-    hm.textContent = showAllHistory ? 'Afficher moins' : `Afficher plus (${week.length - HISTORY_SHORT})`;
+    hm.textContent = `Afficher plus (${week.length - HISTORY_SHORT})`;
+    hm.onclick = () => {
+      const days = [];
+      for (const a of week) { const k = new Date(a.debut).toDateString(); let d = days.find((x) => x.k === k); if (!d) { d = { k, label: dayLabel(a.debut), items: [] }; days.push(d); } d.items.push(a); }
+      openSheet('7 derniers jours', days.map((d) => el('div', { class: 'day' }, el('h2', {}, d.label), el('ul', { class: 'list' }, d.items.map(histItem)))));
+    };
   }
-  $('nowMore').addEventListener('click', () => { showAllNow = !showAllNow; render(); });
-  $('historyMore').addEventListener('click', () => { showAllHistory = !showAllHistory; render(); });
+  const dayLabel = (iso) => { const d = new Date(iso); const diff = Math.round((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 86400000); return diff === 0 ? 'Aujourd’hui' : diff === 1 ? 'Hier' : d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); };
   function progress() {
     for (const f of document.querySelectorAll('.fill[data-start]')) {
       const start = Number(f.dataset.start), end = Number(f.dataset.end);
@@ -205,17 +209,17 @@
   }
 
   /* ---------------- Liens ---------------- */
+  const linkTile = (l) => el('a', { class: 'lnk', href: l.url, target: '_blank', rel: 'noopener', style: `--c:${colorOf(l.nom)}`, title: l.description || l.url },
+    el('span', { class: 'pic' }, l.image ? el('img', { src: l.image, alt: '' }) : String(l.nom).charAt(0).toUpperCase()),
+    el('strong', {}, l.nom), el('span', {}, l.description || String(l.url).replace(/^https:\/\/(www\.)?/, '')));
   function renderLinks(s) {
-    const shown = showAllLinks ? s.liens : s.liens.slice(0, LINKS_SHORT);
-    $('links').replaceChildren(...(shown.length ? shown.map((l) => el('a', { class: 'lnk', href: l.url, target: '_blank', rel: 'noopener', style: `--c:${colorOf(l.nom)}`, title: l.description || l.url },
-      el('span', { class: 'pic' }, l.image ? el('img', { src: l.image, alt: '' }) : String(l.nom).charAt(0).toUpperCase()),
-      el('strong', {}, l.nom), el('span', {}, l.description || String(l.url).replace(/^https:\/\/(www\.)?/, ''))))
-      : [el('p', { class: 'empty', style: 'grid-column:1/-1' }, 'Aucun lien pour l’instant.')]));
+    const shown = s.liens.slice(0, LINKS_SHORT);
+    $('links').replaceChildren(...(shown.length ? shown.map(linkTile) : [el('p', { class: 'empty', style: 'grid-column:1/-1' }, 'Aucun lien pour l’instant.')]));
     const m = $('linksMore');
     m.hidden = s.liens.length <= LINKS_SHORT;
-    m.textContent = showAllLinks ? 'Afficher moins' : `Afficher plus (${s.liens.length - LINKS_SHORT})`;
+    m.textContent = `Afficher plus (${s.liens.length - LINKS_SHORT})`;
+    m.onclick = () => openSheet('Tous les liens', [el('div', { class: 'links' }, s.liens.map(linkTile))]);
   }
-  $('linksMore').addEventListener('click', () => { showAllLinks = !showAllLinks; render(); });
 
   /* ---------------- Pages ---------------- */
   function showPage(id) {
@@ -236,16 +240,15 @@
     const filtered = projectFilter === 'all' ? all : all.filter((p) => p.statut === projectFilter);
     const featured = filtered.filter((p) => p.avant);
     const preview = (featured.length ? featured : filtered).slice(0, 3);
-    const shown = showAllProjects ? filtered : preview;
-    $('projects').replaceChildren(...(shown.length ? shown.map((p) => el('button', { class: 'project', type: 'button', onclick: () => openProject(p) },
+    const projectCard = (p) => el('button', { class: 'project', type: 'button', onclick: () => openProject(p) },
       picOf(p, 'pic'),
-      el('div', { class: 'pt' }, el('strong', {}, p.nom), p.description ? el('p', {}, p.description) : null, el('span', {}, el('span', { class: `st ${p.statut}` }, STATUS[p.statut] || 'En cours')))))
-      : [el('p', { class: 'empty' }, all.length ? 'Aucun projet avec ce statut.' : 'Pas encore de projet.')]));
+      el('div', { class: 'pt' }, el('strong', {}, p.nom), p.description ? el('p', {}, p.description) : null, el('span', {}, el('span', { class: `st ${p.statut}` }, STATUS[p.statut] || 'En cours'))));
+    $('projects').replaceChildren(...(preview.length ? preview.map(projectCard) : [el('p', { class: 'empty' }, all.length ? 'Aucun projet avec ce statut.' : 'Pas encore de projet.')]));
     const m = $('projectsMore');
     m.hidden = filtered.length <= preview.length;
-    m.textContent = showAllProjects ? 'Voir moins' : `Voir plus (${filtered.length - preview.length})`;
+    m.textContent = `Voir plus (${filtered.length - preview.length})`;
+    m.onclick = () => openSheet(projectFilter === 'all' ? 'Tous les projets' : `Projets · ${STATUS[projectFilter]}`, [el('div', { class: 'projects' }, filtered.map(projectCard))]);
   }
-  $('projectsMore').addEventListener('click', () => { showAllProjects = !showAllProjects; renderProjects(status); });
   function openProject(p) {
     const links = (p.liens || []).map((l) => el('a', { class: 'chip', href: l.url, target: '_blank', rel: 'noopener', style: `--c:${colorOf(l.nom)}` }, el('i'), l.nom));
     const members = (p.membres || []).map((m) => el(m.url ? 'a' : 'span', { class: 'member', href: m.url || null, target: m.url ? '_blank' : null, rel: 'noopener', title: m.url ? 'Voir le profil' : null },
@@ -258,6 +261,11 @@
       members.length ? [el('h2', { style: 'margin-top:16px' }, 'Collaborateurs'), el('div', { class: 'members' }, members)] : null,
     ].flat(2).filter(Boolean));
     body.querySelector('.md').innerHTML = markdown(p.details);
+    $('modal').hidden = false;
+  }
+  /** Fenêtre générique par-dessus la page (listes complètes). */
+  function openSheet(title, nodes) {
+    $('modalBody').replaceChildren(el('h1', { class: 'sheet-title' }, title), ...nodes.flat(2).filter(Boolean));
     $('modal').hidden = false;
   }
   $('modalClose').addEventListener('click', () => { $('modal').hidden = true; });
