@@ -3,7 +3,7 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 (function () {
   'use strict';
-  const SITE_VERSION = '1.4';
+  const SITE_VERSION = '1.5';
   const CONFIG = window.KP_PROFIL || {};
   const REFRESH_MS = 8000;
   const OFFLINE_AFTER_MS = 3 * 60 * 1000;
@@ -359,8 +359,19 @@
     $('dcRing').className = `ring ${st}`;
     const g = u.primary_guild;
     const clan = g && g.tag ? el('span', { class: 'dc-clan' }, g.badge && g.identity_guild_id ? el('img', { src: `https://cdn.discordapp.com/clan-badges/${g.identity_guild_id}/${g.badge}.png?size=16`, alt: '' }) : null, g.tag) : null;
-    $('dcName').replaceChildren(u.global_name || u.username, clan);
-    $('dcTag').textContent = `@${u.username} · ${({ online: 'en ligne', idle: 'absent', dnd: 'ne pas déranger' })[st] || 'hors ligne'}`;
+    const nameEl = $('dcName');
+    nameEl.replaceChildren(el('span', { class: 'dc-dn' }, u.global_name || u.username), clan);
+    // Couleur du nom d'affichage (Nitro) et plaque de nom (collectible)
+    const dns = u.display_name_styles;
+    const col = dns && Array.isArray(dns.colors) && dns.colors.length ? dns.colors.map((c) => `#${Number(c).toString(16).padStart(6, '0')}`) : null;
+    nameEl.querySelector('.dc-dn').style.cssText = col ? (col.length > 1 ? `background:linear-gradient(90deg,${col.join(',')});-webkit-background-clip:text;background-clip:text;color:transparent` : `color:${col[0]}`) : '';
+    const plate = u.collectibles && u.collectibles.nameplate && u.collectibles.nameplate.asset ? `https://cdn.discordapp.com/assets/collectibles/${u.collectibles.nameplate.asset}static.png` : '';
+    const head = $('discord').querySelector('.dc-head');
+    head.style.backgroundImage = plate ? `linear-gradient(90deg, rgba(14,17,16,.9) 35%, rgba(14,17,16,.2)), url(${plate})` : '';
+    head.classList.toggle('plated', !!plate);
+    const custom = (lanyard.activities || []).find((a) => a.type === 4);
+    $('dcTag').replaceChildren(`@${u.username} · ${({ online: 'en ligne', idle: 'absent', dnd: 'ne pas déranger' })[st] || 'hors ligne'}`,
+      custom && (custom.state || (custom.emoji && custom.emoji.name)) ? el('span', { class: 'dc-custom' }, custom.emoji && custom.emoji.id ? el('img', { src: `https://cdn.discordapp.com/emojis/${custom.emoji.id}.${custom.emoji.animated ? 'gif' : 'png'}?size=20`, alt: '' }) : (custom.emoji && custom.emoji.name ? custom.emoji.name + ' ' : ''), custom.state || '') : null);
     const badges = FLAGS.filter(([bit]) => Number(u.public_flags || 0) & bit).map(([, name, icon]) => badge(name, icon));
     if (u.premium_type) badges.push(badge('Nitro', NITRO));
     $('dcBadges').replaceChildren(...badges);
