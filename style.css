@@ -271,3 +271,28 @@ a.member:hover { border-color: var(--accent); }
   .card { padding: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* Musique */
+.nowtrack { display: flex; gap: 14px; align-items: center; padding: 12px 14px; margin-top: 12px; border-radius: 12px; background: var(--box-2); border: 1px solid var(--line); color: inherit; text-decoration: none; transition: border-color .2s; }
+.nowtrack:hover { border-color: #1ed760; }
+.nowtrack .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.nowtrack .tt strong, .nowtrack .tt .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.nowtrack .tt .muted { font-size: 13px; }
+.nowtrack .fill { background: #1ed760; }
+.tpic { position: relative; flex: none; width: 44px; height: 44px; border-radius: 8px; overflow: hidden; background: var(--box); display: grid; place-items: center; font-weight: 800; color: var(--accent); }
+.tpic.round { border-radius: 50%; }
+.tpic.big { width: 72px; height: 72px; border-radius: 12px; font-size: 26px; }
+.tpic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.toplist { display: flex; flex-direction: column; gap: 8px; }
+.toprow { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--box-2); border: 1px solid var(--line); color: inherit; text-decoration: none; transition: transform .15s, border-color .2s; }
+.toprow:hover { transform: translateX(3px); border-color: var(--accent); }
+.toprow .rank { flex: none; width: 24px; text-align: center; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+.toprow .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.toprow .tt strong, .toprow .tt .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.toprow .tt .muted { font-size: 12px; }
+.toprow .tt .bar { display: block; margin-top: 6px; }
+.toprow .tt .fill { display: block; }
+.toprow .tn { flex: none; text-align: right; display: flex; flex-direction: column; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.toprow .tn b { color: var(--text); font-size: 14px; }
+.stage .ptags { justify-content: flex-start; margin: 12px 0; }
+@media (max-width: 720px) { .toprow .tn span { display: none; } }
