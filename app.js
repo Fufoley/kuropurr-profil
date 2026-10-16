@@ -3,7 +3,19 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 (function () {
   'use strict';
-  const SITE_VERSION = '2.2';
+  const SITE_VERSION = '3.0';
+  // Journal du site (le journal de KuroPurr vient de status.json)
+  const SITE_LOG = [
+    ['3.0', 'Page Divers : activité sur un an, trophées, tops, records, récap du mois, horaires, setup, collection, livre d’or, playlist des visiteurs, bouton coucou, visiteurs par pays, Cat.exe. Compteur GoatCounter. Journal des versions (clic sur les versions). Pochettes dans l’activité. Affichage mobile.'],
+    ['2.2', 'Page Musique : Spotify (écoutes, tops, playlists), KuroPurr Musique à venir.'],
+    ['2.1', 'Médiathèque : séries et films via Simkl.'],
+    ['2.0', 'Médiathèque : anime, manga, séries, films.'],
+    ['1.9', 'Page Anime (MyAnimeList).'],
+    ['1.8', 'Page Jeux en grille : Steam, Roblox, Minecraft.'],
+    ['1.7', 'Carte Discord enrichie, badges déclarés.'],
+    ['1.6', 'Posts & Projets.'],
+    ['1.5', 'Refonte : carrés transparents, page Profil.'],
+  ];
   const CONFIG = window.KP_PROFIL || {};
   const REFRESH_MS = 8000;
   const OFFLINE_AFTER_MS = 3 * 60 * 1000;
@@ -34,6 +46,9 @@
     if (!s.steam || !Array.isArray(s.steam.jeux)) s.steam = null; else if (!Array.isArray(s.steam.souhaits)) s.steam.souhaits = [];
     if (!s.roblox || !Array.isArray(s.roblox.jeux)) s.roblox = null;
     if (!s.spotify || typeof s.spotify !== 'object') s.spotify = null;
+    if (!s.divers || typeof s.divers !== 'object') s.divers = null;
+    else { if (!Array.isArray(s.divers.tuiles)) s.divers.tuiles = []; if (!s.divers.evenements || typeof s.divers.evenements !== 'object') s.divers.evenements = {}; }
+    if (!Array.isArray(s.journal)) s.journal = [];
     else for (const k of ['ecoutes', 'topArtistes', 'topTitres', 'playlists']) if (!Array.isArray(s.spotify[k])) s.spotify[k] = [];
     return s;
   };
@@ -65,6 +80,7 @@
   const clock = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
   const dateFmt = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
   const isToday = (iso) => new Date(iso).toDateString() === new Date().toDateString();
+  const ago = (iso) => { const m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 1 ? 'à l’instant' : m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.floor(m / 60)} h` : m < 43200 ? `il y a ${Math.floor(m / 1440)} j` : when(iso); };
   const when = (iso) => { const t = Date.parse(iso); return isToday(iso) ? `aujourd’hui à ${clock.format(t)}` : `le ${dateFmt.format(t)} à ${clock.format(t)}`; };
   const isVideo = (u) => /\.(mp4|webm)(\?|$)/i.test(u);
   const svg = (d) => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('class', 'i'); s.innerHTML = d; return s; };
@@ -126,7 +142,7 @@
     $('dot').className = `dot ${online ? (s.nePasDeranger ? 'dnd' : 'on') : ''}`;
     $('statusText').textContent = online
       ? `${s.nePasDeranger ? 'Ne pas déranger' : 'En ligne'}${s.enLigneDepuis ? ` · depuis ${since(s.enLigneDepuis)}` : ''}`
-      : s.majLe ? `Hors ligne · depuis ${when(s.majLe)}` : 'Hors ligne';
+      : s.vu && s.vu.quand ? `Hors ligne · vu ${ago(s.vu.quand)}${s.vu.source ? ` sur ${s.vu.source}` : ''}` : s.majLe ? `Hors ligne · depuis ${when(s.majLe)}` : 'Hors ligne';
     $('verClient').textContent = s.versionClient || '—';
     $('verSite').textContent = SITE_VERSION;
 
@@ -148,11 +164,12 @@
     renderGames(s);
     renderAnime(s);
     renderMusic(s);
+    renderDivers(s);
     showPage(page);
 
     $('updated').textContent = s.majLe ? `Dernière mise à jour : ${when(s.majLe)}` : 'Pas encore de mise à jour';
     loadLanyard(s.discordId);
-    views(s.compteur);
+    views(s.compteur, s.compteurCode);
   }
 
   /* ---------------- Activité ---------------- */
@@ -238,6 +255,7 @@
     for (const m of document.querySelectorAll('[data-page]')) if (m.tagName === 'MAIN') m.hidden = m.dataset.page !== id;
   }
   $('nav').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; history.replaceState(null, '', `#${b.dataset.page}`); showPage(b.dataset.page); });
+  window.addEventListener('hashchange', () => { const id = location.hash.replace('#', ''); if (id && document.querySelector(`main[data-page="${id}"]`)) showPage(id); });
 
   /* ---------------- Posts ---------------- */
   const POSTS_SHORT = 3;
@@ -633,30 +651,379 @@
     }
   }
 
-  /* ---------------- Vues : comptées une fois par visiteur et par jour ---------------- */
-  // counterapi.dev (gratuit, sans compte, réponse JSON) ; en secours, le badge SVG de hits.sh.
-  let viewsDone = false;
-  async function views(enabled) {
-    const box = $('views');
-    box.hidden = !enabled;
-    if (!enabled || viewsDone) return;
-    viewsDone = true;
-    const ns = `kuropurr-${location.host.replace(/[^a-z0-9]/gi, '-')}`.toLowerCase();
-    const key = location.pathname.replace(/[^a-z0-9]/gi, '-').replace(/^-+|-+$/g, '') || 'profil';
+
+  /* ---------------- Divers : tuiles + fiches ---------------- */
+  const flag = (code) => String(code || '').length === 2 ? String.fromCodePoint(...[...code.toUpperCase()].map((c) => 127397 + c.charCodeAt(0))) : '🌐';
+  const hms = (sec) => { const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60); return h ? `${h} h ${pad(m)}` : `${m} min`; };
+  const monthName = (ym) => { const [y, m] = ym.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }); };
+  const TILE_DEF = {
+    activite: ['📊', 'Activité', (d) => d.activite ? `${d.activite.joursActifs} jours actifs` : 'bientôt'],
+    trophees: ['🏆', 'Trophées', (d) => d.trophees ? `${d.trophees.or} or · ${d.trophees.argent} argent · ${d.trophees.bronze} bronze` : 'bientôt'],
+    tops: ['🥇', 'Mes tops', (d) => `${(d.tops || []).length} classement${(d.tops || []).length > 1 ? 's' : ''}`],
+    records: ['⚡', 'Records', (d) => d.records && d.records.sessionMax ? `session max ${hms(d.records.sessionMax.secondes)}` : 'bientôt'],
+    recap: ['📆', 'Récap du mois', (d) => d.recaps && d.recaps.length ? monthName(d.recaps[0].mois) : 'bientôt'],
+    horaires: ['🕒', 'Quand me trouver', (d) => d.activite ? peakLabel(d.activite.heures) : 'bientôt'],
+    setup: ['🖥️', 'Setup', (d) => d.setup && d.setup.machine && d.setup.machine.processeur ? d.setup.machine.processeur.split(' · ')[0].replace(/\(R\)|\(TM\)|CPU|Processor/g, '').trim() : 'mon PC'],
+    collection: ['🎞️', 'Collection', (d) => `${(d.collection || []).length} média${(d.collection || []).length > 1 ? 's' : ''}`],
+    livreOr: ['📖', 'Livre d’or', (d) => `${((d.livreOr || {}).messages || []).length} message${((d.livreOr || {}).messages || []).length > 1 ? 's' : ''}`],
+    playlist: ['🎵', 'Playlist des visiteurs', (d) => `${((d.playlist || {}).propositions || []).length} proposition${((d.playlist || {}).propositions || []).length > 1 ? 's' : ''}`],
+    ping: ['👋', 'Me faire coucou', (d) => `${(d.evenements || {}).ping || 0} coucou${((d.evenements || {}).ping || 0) > 1 ? 's' : ''}`],
+    visiteurs: ['🌍', 'Visiteurs', (d) => d.visiteurs ? `${(d.visiteurs.total || 0).toLocaleString('fr-FR')} · ${(d.visiteurs.pays || []).length} pays` : 'bientôt'],
+    chat: ['🐈‍⬛', 'Cat.exe', (d) => `${(d.evenements || {}).calins || 0} câlin${((d.evenements || {}).calins || 0) > 1 ? 's' : ''}`],
+  };
+  function peakLabel(h) {
+    if (!h || !h.some((x) => x > 0)) return 'pas encore assez de données';
+    // Meilleure fenêtre de 4 h consécutives
+    let best = 0, bi = 0;
+    for (let i = 0; i < 24; i++) { const v = h[i] + h[(i + 1) % 24] + h[(i + 2) % 24] + h[(i + 3) % 24]; if (v > best) { best = v; bi = i; } }
+    return `plutôt ${bi} h – ${(bi + 4) % 24} h`;
+  }
+  function renderDivers(s) {
+    const d = s.divers;
+    const box = $('tiles');
+    if (!d) { box.replaceChildren(el('p', { class: 'empty' }, 'Rien ici pour l’instant.')); return; }
+    const tiles = d.tuiles.filter((t) => TILE_DEF[t]);
+    box.replaceChildren(...tiles.map((t) => {
+      const [ico, label, sub] = TILE_DEF[t];
+      return el('button', { class: 'tile', type: 'button', 'data-tile': t, onclick: () => openTile(t) }, el('span', { class: 'ico' }, ico), el('strong', {}, label), el('span', { class: 'muted small' }, sub(d)));
+    }));
+    if (!tiles.length) box.replaceChildren(el('p', { class: 'empty' }, 'Rien ici pour l’instant.'));
+  }
+  function openTile(t) {
+    const d = status.divers || {};
+    const open = (title, nodes, wide) => { openSheet(title, nodes); $('modal').querySelector('.modal-box').classList.toggle('wide', !!wide); };
+    switch (t) {
+      case 'activite': return open('Activité', activityView(d.activite), true);
+      case 'trophees': return open('Trophées KuroPurr', trophiesView(d.trophees), true);
+      case 'tops': return open('Mes tops', topsView(d.tops || []), true);
+      case 'records': return open('Records', recordsView(d.records));
+      case 'recap': return open('Récap', recapView(d.recaps || []), true);
+      case 'horaires': return open('Quand me trouver', hoursView(d.activite));
+      case 'setup': return open('Setup', setupView(d.setup));
+      case 'collection': return open('Collection', collectionView(d.collection || []), true);
+      case 'livreOr': return open('Livre d’or', guestbookView(d.livreOr || {}), true);
+      case 'playlist': return open('Playlist des visiteurs', playlistView(d.playlist || {}));
+      case 'ping': return open('Me faire coucou', pingView(d));
+      case 'visiteurs': return open('Visiteurs', visitorsView(d.visiteurs));
+      case 'chat': return open('Cat.exe', catView(d));
+      default: return null;
+    }
+  }
+  const note = (t) => el('p', { class: 'muted small', style: 'margin:8px 0 0' }, t);
+  function activityView(a) {
+    if (!a) return [note('Pas encore de données.')];
+    const days = a.jours;
+    const max = Math.max(1, ...days.map((x) => x.j + x.m));
+    const level = (v) => v <= 0 ? 0 : v < max * 0.15 ? 1 : v < max * 0.4 ? 2 : v < max * 0.7 ? 3 : 4;
+    // Colonnes = semaines (lundi en haut)
+    const first = new Date(days[0].d + 'T00:00:00');
+    const lead = (first.getDay() + 6) % 7;
+    const cells = [...Array(lead).fill(null), ...days];
+    const weeks = [];
+    for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+    const months = [];
+    weeks.forEach((w, i) => { const c = w.find(Boolean); if (!c) return; const dt = new Date(c.d + 'T00:00:00'); if (dt.getDate() <= 7) months.push([i, dt.toLocaleDateString('fr-FR', { month: 'short' })]); });
+    const grid = el('div', { class: 'heat' },
+      el('div', { class: 'heat-months' }, months.map(([i, m]) => el('span', { style: `grid-column:${i + 1}` }, m))),
+      el('div', { class: 'heat-grid', style: `grid-template-columns:repeat(${weeks.length}, 1fr)` }, weeks.map((w) => el('div', { class: 'heat-col' }, [0, 1, 2, 3, 4, 5, 6].map((k) => { const c = w[k]; return el('span', { class: `heat-cell l${c ? level(c.j + c.m) : 0} ${c ? '' : 'none'}`, title: c ? `${new Date(c.d + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} · jeu ${hms(c.j)} · musique ${hms(c.m)}` : '' }); })))),
+      el('div', { class: 'heat-legend muted small' }, 'moins ', [0, 1, 2, 3, 4].map((l) => el('span', { class: `heat-cell l${l}` })), ' plus'));
+    const last30 = days.slice(-30);
+    const sum = (k) => last30.reduce((n, x) => n + x[k], 0);
+    return [
+      el('div', { class: 'pstats' }, stat('Jours actifs', a.joursActifs), stat('Heures de jeu', a.heuresJeu), stat('Heures de musique', a.heuresMusique), stat('30 derniers jours', hms(sum('j') + sum('m')))),
+      el('hr'), grid,
+      note('Une case par jour sur un an : jeu et musique vus par KuroPurr (au moins 5 min pour compter un jour actif).'),
+    ];
+  }
+  function trophiesView(t) {
+    if (!t) return [note('Pas encore de trophées.')];
+    const medal = (n) => ['⚪', '🥉', '🥈', '🥇'][n] || '⚪';
+    const names = ['à débloquer', 'bronze', 'argent', 'or'];
+    const list = t.liste.slice().sort((a, b) => b.niveau - a.niveau || b.progression - a.progression);
+    return [
+      el('div', { class: 'pstats' }, stat('Or', t.or), stat('Argent', t.argent), stat('Bronze', t.bronze), stat('Total', t.total)),
+      el('hr'),
+      el('div', { class: 'trophies' }, list.map((x) => el('div', { class: `trophy n${x.niveau}` },
+        el('span', { class: 'ico' }, x.icone),
+        el('div', { class: 'tt' }, el('strong', {}, x.nom, ' ', el('span', { class: 'medal', title: names[x.niveau] }, medal(x.niveau))), el('span', { class: 'muted small' }, x.description),
+          el('span', { class: 'bar' }, el('span', { class: 'fill', style: `width:${Math.round(x.progression * 100)}%` })),
+          el('span', { class: 'muted small nums' }, `${Number.isInteger(x.valeur) ? x.valeur : x.valeur.toFixed(1)} ${x.unite}${x.prochain != null ? ` · prochain palier ${x.prochain}` : ' · palier maximum'}`)))),
+      ),
+      note('Calculés par KuroPurr à partir de l’activité réelle : paliers bronze, argent, or.'),
+    ];
+  }
+  function topsView(tops) {
+    if (!tops.length) return [note('Pas encore de classement.')];
+    const wrap = el('div', {});
+    const grid = () => el('div', { class: 'topsgrid' }, tops.map((t) => { const first = t.items[0] || {}; return el('button', { class: 'topsq', type: 'button', onclick: () => show(t) },
+      first.image ? el('img', { src: first.image, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }) : null,
+      el('span', { class: 'nm' }, el('strong', {}, t.nom), el('span', { class: 'small' }, `${t.items.length} entrée${t.items.length > 1 ? 's' : ''}${first.nom ? ` · n°1 ${first.nom}` : ''}`))); }));
+    const show = (t) => {
+      let i = 0;
+      const card = el('div', { class: 'topcard' });
+      const draw = () => {
+        const it = t.items[i] || {};
+        card.replaceChildren(
+          el('span', { class: 'rank' }, `#${i + 1}`),
+          it.image ? el('img', { src: it.image, alt: '', onerror: (e) => e.target.remove() }) : el('span', { class: 'ph' }, String(it.nom || '?').charAt(0)),
+          el('strong', {}, it.nom || '—'), it.note ? el('p', {}, it.note) : null,
+          el('span', { class: 'muted small' }, `${i + 1} / ${t.items.length} · clique pour continuer`));
+      };
+      card.addEventListener('click', () => { i = (i + 1) % Math.max(1, t.items.length); draw(); });
+      draw();
+      wrap.replaceChildren(el('button', { class: 'link-btn', type: 'button', onclick: () => wrap.replaceChildren(el('h2', {}, 'Choisis un top'), grid()) }, '← Tous les tops'), el('h2', {}, t.nom), card,
+        el('div', { class: 'topdots' }, t.items.map((_, k) => el('button', { class: k === i ? 'on' : '', type: 'button', onclick: (e) => { e.stopPropagation(); i = k; draw(); [...e.currentTarget.parentElement.children].forEach((b, j) => b.classList.toggle('on', j === k)); } }))));
+    };
+    wrap.replaceChildren(el('h2', {}, 'Choisis un top'), grid());
+    return [wrap];
+  }
+  function recordsView(r) {
+    if (!r) return [note('Pas encore de records.')];
+    const row = (ico, label, value, sub) => value ? el('div', { class: 'row' }, el('span', { class: 'rico' }, ico), el('div', { class: 'rt' }, el('span', { class: 'muted small' }, label), el('strong', {}, value), sub ? el('span', { class: 'muted small' }, sub) : null)) : null;
+    return [
+      row('⏱️', 'Plus longue session', r.sessionMax && `${r.sessionMax.nom} · ${hms(r.sessionMax.secondes)}`, r.sessionMax && `${r.sessionMax.source} · ${new Date(r.sessionMax.date).toLocaleDateString('fr-FR')}`),
+      row('🔁', 'Jeu le plus relancé (90 j)', r.jeuRelance && `${r.jeuRelance.nom}`, r.jeuRelance && `${r.jeuRelance.sessions} sessions`),
+      row('🎧', 'Titre le plus écouté (90 j)', r.titreEcoute && `${r.titreEcoute.titre}`, r.titreEcoute && `${r.titreEcoute.artiste} · ${r.titreEcoute.ecoutes} écoutes`),
+      row('🔥', 'Jours d’affilée', r.serieJours && `${r.serieJours.max} jours`, r.serieJours && `série en cours : ${r.serieJours.actuelle}`),
+      row('📅', 'Journée la plus chargée', r.journeeMax && hms(r.journeeMax.secondes), r.journeeMax && new Date(r.journeeMax.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })),
+      row('🌙', 'Nuit la plus tardive', r.nuitTardive && `fin à ${r.nuitTardive.heure}`, r.nuitTardive && r.nuitTardive.nom),
+      row('🧭', 'Jeux différents (90 j)', r.jeuxDifferents ? String(r.jeuxDifferents) : null),
+      row('🎮', 'Total', `${r.heuresJeu} h de jeu · ${r.heuresMusique} h de musique`, `${r.joursActifs} jours actifs`),
+    ];
+  }
+  function recapView(recaps) {
+    if (!recaps.length) return [note('Le premier récap arrive à la fin du mois.')];
+    return recaps.map((m) => el('div', { class: 'recap' },
+      el('h2', {}, monthName(m.mois), m.enCours ? el('span', { class: 'st en_cours', style: 'margin-left:8px' }, 'en cours') : null),
+      el('div', { class: 'pstats' }, stat('Heures de jeu', m.heuresJeu), stat('Heures de musique', m.heuresMusique), stat('Jours actifs', m.joursActifs), stat('Jeux différents', m.jeuxDifferents)),
+      el('div', { class: 'recap-rows' },
+        m.jeu ? el('span', {}, '🎮 Jeu du mois : ', el('b', {}, m.jeu.nom), ` (${m.jeu.heures} h)`) : null,
+        m.artiste ? el('span', {}, '🎤 Artiste du mois : ', el('b', {}, m.artiste.nom), ` (${m.artiste.minutes} min)`) : null,
+        m.titre ? el('span', {}, '🎵 Titre du mois : ', el('b', {}, m.titre.titre), ` — ${m.titre.artiste} (${m.titre.ecoutes} écoutes)`) : null,
+        m.nuit ? el('span', {}, '🌙 Nuit la plus tardive : ', el('b', {}, m.nuit)) : null)));
+  }
+  function hoursView(a) {
+    if (!a || !a.heures) return [note('Pas encore de données.')];
+    const h = a.heures;
+    const max = Math.max(1, ...h);
+    const now = new Date().getHours();
+    return [
+      el('p', { class: 'muted small' }, 'Heures de jeu sur les 30 derniers jours, heure par heure (heure de Paris). ', el('b', {}, peakLabel(h)), '.'),
+      el('div', { class: 'hours' }, h.map((v, i) => el('div', { class: `hbar ${i === now ? 'now' : ''}`, title: `${i} h : ${hms(v)}` }, el('span', { style: `height:${Math.max(2, (v / max) * 100)}%` }), el('small', {}, i % 3 === 0 ? `${i}h` : '')))),
+      note('La barre claire est l’heure actuelle.'),
+    ];
+  }
+  function setupView(s) {
+    if (!s) return [note('Rien à montrer.')];
+    const m = s.machine || {};
+    const rows = [['💻', 'Système', m.systeme], ['⚙️', 'Processeur', m.processeur], ['🧠', 'Mémoire', m.memoire], ['🎨', 'Carte graphique', m.graphique]].filter((r) => r[2]);
+    return [
+      s.photo ? el('img', { class: 'setup-photo', src: s.photo, alt: '', onclick: () => zoom(s.photo) }) : null,
+      rows.length ? el('div', { class: 'kv' }, rows.map(([i, k, v]) => el('div', {}, el('span', { class: 'muted small' }, `${i} ${k}`), el('strong', {}, v)))) : null,
+      (s.lignes || []).length ? el('div', { class: 'kv' }, s.lignes.map((l) => el('div', {}, el('span', { class: 'muted small' }, l.nom), el('strong', {}, l.valeur)))) : null,
+      !rows.length && !(s.lignes || []).length ? note('Pas encore renseigné.') : null,
+    ];
+  }
+  function collectionView(items) {
+    if (!items.length) return [note('Pas encore de clips ni de captures.')];
+    return [el('div', { class: 'gallery coll' }, items.map((m) => el('figure', {},
+      m.type === 'video' ? el('video', { src: m.url, controls: '', preload: 'metadata', playsinline: '' }) : el('img', { src: m.url, alt: '', loading: 'lazy', onclick: () => zoom(m.url) }),
+      el('figcaption', {}, el('strong', {}, m.titre || (m.type === 'video' ? 'Clip' : 'Capture')), el('span', { class: 'muted small' }, new Date(m.date).toLocaleDateString('fr-FR'))))))];
+  }
+  function msgRows(list, empty) {
+    return list.length ? el('div', { class: 'msgs' }, list.map((m) => el('div', { class: 'msg' }, el('div', { class: 'mh' }, el('strong', {}, m.pseudo), el('span', { class: 'muted small' }, m.date)), el('p', {}, m.texte)))) : el('p', { class: 'empty' }, empty);
+  }
+  function guestbookView(g) {
+    const form = g.formulaire;
+    const gi = g.giscus;
+    const how = el('div', { class: 'howto' },
+      el('h2', {}, 'Écrire un mot'),
+      form ? el('div', { class: 'opt' }, el('strong', {}, '1. Sans compte (le plus simple)'),
+        el('ol', {}, el('li', {}, 'Clique sur « Ouvrir le formulaire » : il s’ouvre dans un nouvel onglet.'), el('li', {}, 'Mets ton pseudo, choisis « Livre d’or », écris ton message, envoie.'), el('li', {}, 'Le message arrive chez moi dans KuroPurr ; je le valide et il apparaît ici (quelques heures max).')),
+        el('a', { class: 'btn', href: form, target: '_blank', rel: 'noopener' }, 'Ouvrir le formulaire ↗')) : null,
+      gi ? el('div', { class: 'opt' }, el('strong', {}, form ? '2. Avec un compte GitHub' : 'Avec un compte GitHub'),
+        el('ol', {}, el('li', {}, 'Dans le cadre ci-dessous, clique sur « Sign in with GitHub » et autorise giscus.'), el('li', {}, 'Écris ton message et clique sur « Comment ».'), el('li', {}, 'Il apparaît tout de suite dans le cadre (ta discussion est publique sur GitHub).')),
+        el('div', { class: 'giscus-box', id: 'giscusBox' })) : null,
+      !form && !gi ? el('p', { class: 'muted small' }, 'Le livre d’or n’est pas encore ouvert à l’écriture.') : null);
+    const nodes = [msgRows(g.messages || [], 'Personne n’a encore écrit. Sois le premier !'), el('hr'), how];
+    if (gi) setTimeout(() => mountGiscus(gi), 0);
+    return nodes;
+  }
+  function mountGiscus(gi) {
+    const box = $('giscusBox');
+    if (!box) return;
+    const sc = document.createElement('script');
+    const attrs = { src: 'https://giscus.app/client.js', 'data-repo': gi.repo, 'data-repo-id': gi.repoId, 'data-category': gi.category, 'data-category-id': gi.categoryId, 'data-mapping': gi.mapping || 'specific', 'data-term': gi.term || 'Livre d’or', 'data-strict': '0', 'data-reactions-enabled': '1', 'data-emit-metadata': '0', 'data-input-position': 'top', 'data-theme': 'transparent_dark', 'data-lang': 'fr', crossorigin: 'anonymous', async: '' };
+    for (const [k, v] of Object.entries(attrs)) sc.setAttribute(k, v);
+    box.replaceChildren(sc);
+  }
+  function playlistView(p) {
+    return [
+      el('p', { class: 'muted small' }, 'Les morceaux que vous me conseillez. Je les écoute, et ceux que je valide apparaissent ici.'),
+      msgRows(p.propositions || [], 'Aucune proposition pour l’instant.'),
+      el('hr'),
+      el('h2', {}, 'Proposer un morceau'),
+      p.formulaire ? el('div', { class: 'opt' }, el('ol', {}, el('li', {}, 'Ouvre le formulaire (nouvel onglet).'), el('li', {}, 'Ton pseudo, le type « Proposition de musique », puis titre + artiste (un lien Spotify / YouTube, c’est encore mieux).'), el('li', {}, 'Envoie : je reçois ça dans KuroPurr et je valide.')), el('a', { class: 'btn', href: p.formulaire, target: '_blank', rel: 'noopener' }, 'Ouvrir le formulaire ↗')) : el('p', { class: 'muted small' }, 'Pas encore ouvert aux propositions.'),
+    ];
+  }
+  function pingView(d) {
+    const n = (d.evenements || {}).ping || 0;
     const today = new Date().toDateString();
-    let mem = {};
-    try { mem = JSON.parse(localStorage.getItem('kp-vues') || '{}'); } catch { /* stockage indisponible */ }
-    const counted = mem.day === today;
-    try {
-      const r = await fetch(`https://api.counterapi.dev/v1/${ns}/${key}${counted ? '' : '/up'}`);
-      const j = await r.json();
-      const n = Number(j.count ?? (j.data && j.data.count));
-      if (!Number.isFinite(n)) throw new Error();
-      box.textContent = `${n.toLocaleString('fr-FR')} vues`;
-      try { localStorage.setItem('kp-vues', JSON.stringify({ day: today, n })); } catch { /* tant pis */ }
-    } catch {
-      const img = el('img', { src: `https://hits.sh/${location.host}${location.pathname}.svg?label=vues&color=${encodeURIComponent((status && status.accent) || '#a9c59b').replace('%23', '')}&labelColor=1a1f1c&style=flat-square`, alt: 'vues', onerror: () => { box.textContent = mem.n ? `${mem.n.toLocaleString('fr-FR')} vues` : 'vues indisponibles'; } });
-      box.replaceChildren(img);
+    let done = false;
+    try { done = localStorage.getItem('kp-ping') === today; } catch { /* rien */ }
+    const btn = el('button', { class: 'bigbtn', type: 'button', disabled: done || null }, done ? 'Coucou envoyé aujourd’hui ✓' : '👋 Faire coucou');
+    const msg = el('p', { class: 'muted small' }, done ? 'Merci ! Tu pourras recommencer demain.' : `Un clic, et je reçois une notification sur mon PC. Une fois par jour et par personne.${n ? ` Déjà ${n} coucou${n > 1 ? 's' : ''} reçus.` : ''}`);
+    btn.addEventListener('click', () => {
+      gcEvent('ping', 'Coucou');
+      try { localStorage.setItem('kp-ping', today); } catch { /* rien */ }
+      btn.disabled = true; btn.textContent = 'Coucou envoyé ✓'; msg.textContent = 'Envoyé ! Il verra passer une notification « quelqu’un te fait coucou » sur son PC.';
+      burst(btn, '👋');
+    });
+    return [el('div', { class: 'center' }, btn, msg)];
+  }
+  function visitorsView(v) {
+    if (!v) return [note('Compteur pas encore configuré.')];
+    const pays = v.pays || [];
+    const max = Math.max(1, ...pays.map((p) => p.n));
+    return [
+      el('div', { class: 'pstats three' }, stat('Visiteurs', (v.total || 0).toLocaleString('fr-FR')), stat('Pays', pays.length), stat('Mis à jour', v.maj ? ago(v.maj) : '—')),
+      el('hr'),
+      pays.length ? el('div', { class: 'toplist' }, pays.slice(0, 30).map((p, i) => el('div', { class: 'toprow' }, el('span', { class: 'rank' }, String(i + 1)), el('span', { class: 'tpic round flagpic' }, flag(p.code)), el('span', { class: 'tt' }, el('strong', {}, p.nom || p.code), el('span', { class: 'bar' }, el('span', { class: 'fill', style: `width:${Math.max(3, (p.n / max) * 100)}%` }))), el('span', { class: 'tn' }, el('b', {}, p.n.toLocaleString('fr-FR')))))) : el('p', { class: 'empty' }, 'Pas encore de visiteurs comptés.'),
+      note('Visiteurs uniques comptés par GoatCounter, sans cookie ni traçage : seul le pays est agrégé.'),
+    ];
+  }
+  /* ---- Cat.exe : la planche de Cat.exe (8 × 6 cases) ---- */
+  const CAT = { cols: 8, rows: 6, anims: { sit: [25, 25, 25, 25, 25, 26, 26], purr: [27], groom: [28, 29, 30, 29], sleep: [33], stretch: [34, 35, 35, 36], pounce: [37, 38, 39, 40, 41], walk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] } };
+  function makeCat(size = 160) {
+    const c = el('div', { class: 'scat', style: `width:${size}px;height:${size * 0.75}px` });
+    let frames = CAT.anims.sit, i = 0, timer = null, once = null;
+    const show = (f) => { c.style.backgroundPosition = `${((f % CAT.cols) / (CAT.cols - 1)) * 100}% ${(Math.floor(f / CAT.cols) / (CAT.rows - 1)) * 100}%`; };
+    const play = (name, fps = 4, after = null) => { frames = CAT.anims[name] || CAT.anims.sit; i = 0; once = after; clearInterval(timer); show(frames[0]); timer = setInterval(() => { i++; if (i >= frames.length) { if (once) { const f = once; once = null; f(); return; } i = 0; } show(frames[i]); }, 1000 / fps); };
+    c.play = play;
+    play('sit', 1);
+    return c;
+  }
+  function catView(d) {
+    const n0 = (d.evenements || {}).calins || 0;
+    let mine = 0;
+    try { mine = Number(localStorage.getItem('kp-calins-' + new Date().toDateString()) || 0); } catch { /* rien */ }
+    const cat = makeCat(200);
+    const count = el('strong', { class: 'big' }, (n0 + 0).toLocaleString('fr-FR'));
+    const hint = el('p', { class: 'muted small' }, 'Clique sur le chat pour le caresser. Il ronronne, et le compteur de câlins est partagé entre tous les visiteurs (30 par jour et par personne, il faut le laisser dormir).');
+    let local = 0, last = 0;
+    const idle = () => { const r = Math.random(); cat.play(r < 0.5 ? 'sit' : r < 0.8 ? 'groom' : 'sleep', 2); };
+    const idleTimer = setInterval(idle, 6000);
+    cat.addEventListener('click', () => {
+      const now = Date.now();
+      if (now - last < 700) return;
+      last = now;
+      if (mine >= 30) { hint.textContent = 'Il dort… reviens demain pour d’autres câlins.'; cat.play('sleep', 1); return; }
+      mine++; local++;
+      try { localStorage.setItem('kp-calins-' + new Date().toDateString(), String(mine)); } catch { /* rien */ }
+      gcEvent('calins', 'Câlin à Cat.exe');
+      count.textContent = (n0 + local).toLocaleString('fr-FR');
+      burst(cat, '💗');
+      cat.play(Math.random() < 0.2 ? 'stretch' : 'purr', 3, () => cat.play('sit', 1));
+    });
+    const eggs = foundEggs();
+    const obs = new MutationObserver(() => { if ($('modal').hidden) { clearInterval(idleTimer); obs.disconnect(); } });
+    obs.observe($('modal'), { attributes: true });
+    return [
+      el('div', { class: 'center' }, el('span', { class: 'catpad' }, cat), el('div', { class: 'calins' }, count, el('span', { class: 'muted small' }, ' câlins')), hint),
+      el('hr'),
+      el('p', { class: 'muted small' }, `🥚 Œufs de Pâques trouvés sur ce site : ${eggs.length} / ${EGGS.length}. ${eggs.length ? `Trouvés : ${eggs.map((e) => EGG_NAMES[e]).join(', ')}.` : 'Il y en a cachés un peu partout…'}`),
+    ];
+  }
+  function burst(node, emoji) {
+    const r = node.getBoundingClientRect();
+    for (let k = 0; k < 6; k++) {
+      const p = el('span', { class: 'fx', style: `left:${r.left + r.width / 2 + (Math.random() - 0.5) * r.width * 0.6}px;top:${r.top + r.height / 2}px;--dx:${(Math.random() - 0.5) * 120}px;--d:${600 + Math.random() * 500}ms` }, emoji);
+      document.body.append(p);
+      setTimeout(() => p.remove(), 1200);
+    }
+  }
+
+  /* ---------------- GoatCounter : visites + événements (ping, câlins, œufs) ---------------- */
+  let gcCode = '';
+  function gcEvent(path, title) {
+    if (!gcCode) return;
+    if (window.goatcounter && window.goatcounter.count) { window.goatcounter.count({ path, title, event: true }); return; }
+    const u = `https://${gcCode}.goatcounter.com/count?p=${encodeURIComponent(path)}&t=${encodeURIComponent(title || path)}&e=true&rnd=${Math.random().toString(36).slice(2)}`;
+    try { navigator.sendBeacon ? navigator.sendBeacon(u) : (new Image().src = u); } catch { new Image().src = u; }
+  }
+
+  /* ---------------- Œufs de Pâques ---------------- */
+  const EGGS = ['konami', 'logo', 'miaou', 'hibou'];
+  const EGG_NAMES = { konami: 'le code Konami', logo: 'le logo caressé', miaou: 'le mot magique', hibou: 'le hibou de nuit' };
+  const foundEggs = () => { try { return JSON.parse(localStorage.getItem('kp-oeufs') || '[]'); } catch { return []; } };
+  function egg(id, text) {
+    const f = foundEggs();
+    const first = !f.includes(id);
+    if (first) { f.push(id); try { localStorage.setItem('kp-oeufs', JSON.stringify(f)); } catch { /* rien */ } gcEvent(`oeuf-${id}`, `Œuf : ${id}`); }
+    const t = el('div', { class: 'egg-toast' }, el('strong', {}, first ? '🥚 Œuf de Pâques trouvé !' : '🥚 Déjà trouvé'), el('span', {}, text));
+    document.body.append(t);
+    setTimeout(() => t.remove(), 4000);
+  }
+  function catRain() {
+    for (let k = 0; k < 14; k++) {
+      const c = makeCat(70 + Math.random() * 60);
+      c.classList.add('rain');
+      c.style.left = `${Math.random() * 95}vw`;
+      c.style.animationDuration = `${3 + Math.random() * 3}s`;
+      c.style.animationDelay = `${Math.random() * 2}s`;
+      c.play('walk', 12);
+      document.body.append(c);
+      setTimeout(() => c.remove(), 7000);
+    }
+  }
+  (function eggs() {
+    const konami = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+    let ki = 0, typed = '';
+    document.addEventListener('keydown', (e) => {
+      ki = e.key === konami[ki] ? ki + 1 : (e.key === konami[0] ? 1 : 0);
+      if (ki === konami.length) { ki = 0; egg('konami', 'Il pleut des chats.'); catRain(); }
+      if (e.key.length === 1) { typed = (typed + e.key.toLowerCase()).slice(-5); if (typed === 'miaou') { typed = ''; egg('miaou', 'Miaou à toi aussi.'); document.body.classList.add('party'); setTimeout(() => document.body.classList.remove('party'), 6000); } }
+    });
+    let clicks = 0, t0 = 0;
+    $('footLogo').addEventListener('click', () => { const now = Date.now(); clicks = now - t0 < 4000 ? clicks + 1 : 1; t0 = now; if (clicks === 7) { clicks = 0; egg('logo', 'Sept caresses sur le logo : le chat apprécie.'); document.body.classList.add('paws'); setTimeout(() => document.body.classList.remove('paws'), 15000); } });
+    const h = new Date().getHours();
+    if (h >= 2 && h < 5) setTimeout(() => egg('hibou', 'Toi aussi tu es debout à cette heure-ci ? Bienvenue chez les hiboux.'), 4000);
+  })();
+
+  /* ---------------- Journal des versions ---------------- */
+  $('verClientBtn').addEventListener('click', () => {
+    const j = (status && status.journal) || [];
+    openSheet('Journal de KuroPurr', j.length ? j.map((r) => { const d = el('div', { class: 'md rel' }); d.innerHTML = `<h2>${r.version}</h2>` + markdown(r.notes); return d; }) : [note('Pas de journal disponible.')]);
+    $('modal').querySelector('.modal-box').classList.add('wide');
+  });
+  $('verSiteBtn').addEventListener('click', () => {
+    openSheet('Journal du site', SITE_LOG.map(([v, t]) => el('div', { class: 'rel' }, el('h2', {}, v), el('p', {}, t))));
+    $('modal').querySelector('.modal-box').classList.remove('wide');
+  });
+
+  /* ---------------- Vues : GoatCounter (visiteurs uniques, sans cookie) ---------------- */
+  let gcLoaded = false;
+  async function views(enabled, code) {
+    const box = $('views');
+    gcCode = String(code || '').replace(/[^a-z0-9-]/gi, '').toLowerCase();
+    box.hidden = !enabled || !gcCode;
+    box.onclick = () => openTile('visiteurs');
+    if (!enabled || !gcCode) return;
+    if (!gcLoaded) {
+      gcLoaded = true;
+      const sc = document.createElement('script');
+      sc.async = true; sc.src = '//gc.zgo.at/count.js';
+      sc.setAttribute('data-goatcounter', `https://${gcCode}.goatcounter.com/count`);
+      document.head.append(sc);
+      try {
+        const r = await fetch(`https://${gcCode}.goatcounter.com/counter/TOTAL.json`, { cache: 'no-store' });
+        const j = await r.json();
+        const n = Number(String(j.count || '').replace(/\D/g, ''));
+        box.textContent = Number.isFinite(n) && n > 0 ? `${n.toLocaleString('fr-FR')} visite${n > 1 ? 's' : ''}` : 'visites';
+      } catch {
+        const v = status && status.divers && status.divers.visiteurs;
+        box.textContent = v && v.total ? `${v.total.toLocaleString('fr-FR')} visiteurs` : 'visites';
+      }
     }
   }
 
