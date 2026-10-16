@@ -6,7 +6,7 @@
   <title>Profil</title>
   <meta name="description" content="Mon profil, mis à jour par KuroPurr." />
   <link rel="icon" href="logo.png" />
-  <link rel="stylesheet" href="style.css?v=0.18.0" />
+  <link rel="stylesheet" href="style.css?v=0.19.0" />
 </head>
 <body>
   <div class="bg" id="bg" aria-hidden="true"></div>
@@ -21,6 +21,7 @@
         <button data-page="projets" type="button">Posts &amp; Projets</button>
         <button data-page="jeux" type="button">Jeux</button>
         <button data-page="mediatheque" type="button">Médiathèque</button>
+        <button data-page="musique" type="button">Musique</button>
       </nav>
       <div class="top-right">
         <div class="box ver" title="Version de KuroPurr">KuroPurr <b id="verClient">—</b></div>
@@ -116,6 +117,17 @@
       </section>
     </main>
 
+    <!-- Musique -->
+    <main class="stage" data-page="musique" hidden>
+      <section class="box card">
+        <div class="switch" id="musSwitch">
+          <button class="on" data-mus="spotify" type="button">Spotify</button>
+          <button data-mus="kuropurr" type="button">KuroPurr Musique</button>
+        </div>
+        <div id="musBody"></div>
+      </section>
+    </main>
+
     <!-- Fiche d'un projet -->
     <div class="modal" id="modal" hidden>
       <div class="box modal-box">
@@ -132,6 +144,6 @@
   </div>
 
   <script src="config.js"></script>
-  <script src="app.js?v=0.18.0"></script>
+  <script src="app.js?v=0.19.0"></script>
 </body>
 </html>
