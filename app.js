@@ -3,7 +3,7 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 (function () {
   'use strict';
-  const SITE_VERSION = '2.1';
+  const SITE_VERSION = '2.2';
   const CONFIG = window.KP_PROFIL || {};
   const REFRESH_MS = 8000;
   const OFFLINE_AFTER_MS = 3 * 60 * 1000;
@@ -21,8 +21,9 @@
 
   let status = null, lanyard = null;
   let projectFilter = 'all', postTag = '', lib = 'steam', steamFilter = 'all';
-  const gstate = { steam: { q: '', genre: '', sort: 'hours', desc: true }, roblox: { q: '', genre: '', sort: 'hours', desc: true }, anime: { q: '', genre: '', sort: 'score', desc: true }, manga: { q: '', genre: '', sort: 'score', desc: true }, series: { q: '', genre: '', sort: 'updated', desc: true }, films: { q: '', genre: '', sort: 'updated', desc: true } };
+  const gstate = { steam: { q: '', genre: '', sort: 'hours', desc: true }, roblox: { q: '', genre: '', sort: 'hours', desc: true }, anime: { q: '', genre: '', sort: 'score', desc: true }, manga: { q: '', genre: '', sort: 'score', desc: true }, series: { q: '', genre: '', sort: 'updated', desc: true }, films: { q: '', genre: '', sort: 'updated', desc: true }, spotify: { q: '', genre: '', sort: 'date', desc: true } };
   let aniKind = 'anime', aniFilter = 'all';
+  let mus = 'spotify', musView = 'ecoutes';
   let page = location.hash.replace('#', '') || 'profil';
 
   const DEFAULTS = { enLigne: false, enLigneDepuis: null, nePasDeranger: false, majLe: null, versionClient: '', pseudo: '', avatar: '', description: '', badges: [], discordId: '', badgesDiscord: [], liens: [], fond: '', accent: '', jeu: { actif: false }, musique: { actif: false }, activites: [], projets: [], posts: [], tagsPosts: [], steam: null, roblox: null, compteur: false };
@@ -32,6 +33,8 @@
     for (const k of ['badges', 'liens', 'activites', 'projets', 'posts', 'tagsPosts', 'badgesDiscord']) if (!Array.isArray(s[k])) s[k] = [];
     if (!s.steam || !Array.isArray(s.steam.jeux)) s.steam = null; else if (!Array.isArray(s.steam.souhaits)) s.steam.souhaits = [];
     if (!s.roblox || !Array.isArray(s.roblox.jeux)) s.roblox = null;
+    if (!s.spotify || typeof s.spotify !== 'object') s.spotify = null;
+    else for (const k of ['ecoutes', 'topArtistes', 'topTitres', 'playlists']) if (!Array.isArray(s.spotify[k])) s.spotify[k] = [];
     return s;
   };
   function sources() {
@@ -144,6 +147,7 @@
     renderProjects(s);
     renderGames(s);
     renderAnime(s);
+    renderMusic(s);
     showPage(page);
 
     $('updated').textContent = s.majLe ? `Dernière mise à jour : ${when(s.majLe)}` : 'Pas encore de mise à jour';
@@ -281,7 +285,7 @@
     p.avatar ? el('img', { src: p.avatar, alt: '', onerror: (e) => e.target.replaceWith(el('span', { class: 'ini' }, String(p.nom || '?').charAt(0))) }) : el('span', { class: 'ini' }, String(p.nom || '?').charAt(0)),
     el('div', { class: 'gt' }, el('strong', {}, p.nom || p.pseudo), sub ? el('span', { class: 'muted' }, sub) : null, p.url ? el('a', { href: p.url, target: '_blank', rel: 'noopener' }, 'Voir le profil ↗') : null)) : null;
   const stat = (label, value, id, on, onclick) => el('button', { class: `pstat ${on ? 'on' : ''} ${onclick ? '' : 'static'}`, type: 'button', onclick: onclick || null }, el('span', {}, label), el('b', { class: typeof value === 'string' && value.length > 6 ? 'txt' : '' }, String(value)));
-  const SORTS = { steam: [['hours', 'Heures de jeu'], ['recent', 'Heures récentes'], ['last', 'Dernière session'], ['name', 'Nom']], roblox: [['hours', 'Temps de jeu'], ['sessions', 'Sessions'], ['last', 'Dernière session'], ['name', 'Nom']], anime: [['score', 'Ma note'], ['mean', 'Note MAL'], ['progress', 'Épisodes vus'], ['updated', 'Dernière mise à jour'], ['year', 'Année'], ['name', 'Titre']], manga: [['score', 'Ma note'], ['mean', 'Note MAL'], ['progress', 'Chapitres lus'], ['updated', 'Dernière mise à jour'], ['year', 'Année'], ['name', 'Titre']], series: [['updated', 'Dernier épisode vu'], ['score', 'Ma note'], ['mean', 'Note Simkl'], ['progress', 'Épisodes vus'], ['year', 'Année'], ['name', 'Titre']], films: [['updated', 'Dernier visionnage'], ['score', 'Ma note'], ['mean', 'Note Simkl'], ['year', 'Année'], ['name', 'Titre']] };
+  const SORTS = { steam: [['hours', 'Heures de jeu'], ['recent', 'Heures récentes'], ['last', 'Dernière session'], ['name', 'Nom']], roblox: [['hours', 'Temps de jeu'], ['sessions', 'Sessions'], ['last', 'Dernière session'], ['name', 'Nom']], anime: [['score', 'Ma note'], ['mean', 'Note MAL'], ['progress', 'Épisodes vus'], ['updated', 'Dernière mise à jour'], ['year', 'Année'], ['name', 'Titre']], manga: [['score', 'Ma note'], ['mean', 'Note MAL'], ['progress', 'Chapitres lus'], ['updated', 'Dernière mise à jour'], ['year', 'Année'], ['name', 'Titre']], series: [['updated', 'Dernier épisode vu'], ['score', 'Ma note'], ['mean', 'Note Simkl'], ['progress', 'Épisodes vus'], ['year', 'Année'], ['name', 'Titre']], films: [['updated', 'Dernier visionnage'], ['score', 'Ma note'], ['mean', 'Note Simkl'], ['year', 'Année'], ['name', 'Titre']], spotify: [['date', 'Date d’écoute'], ['duration', 'Durée écoutée'], ['name', 'Titre'], ['artist', 'Artiste']] };
   function steamCard(g, wish) {
     const tag = wish ? ['souhait', 'Souhait'] : g.installe ? ['installe', 'Installé'] : ['noninstalle', 'Non installé'];
     const img = el('img', { src: `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/library_600x900.jpg`, alt: '', loading: 'lazy' });
@@ -301,11 +305,11 @@
         el('p', {}, [g.genre, g.dernier ? `dernière ${when(g.dernier)}` : ''].filter(Boolean).join(' · '))));
   }
   /** Barre d'outils : recherche, genre, tri, ordre. */
-  function tools(kind, genres) {
+  function tools(kind, genres, label = 'Tous les genres') {
     const st = gstate[kind];
-    const redo = () => (kind === 'steam' || kind === 'roblox' ? renderGames(status) : renderAnime(status));
+    const redo = () => (kind === 'steam' || kind === 'roblox' ? renderGames(status) : kind === 'spotify' ? renderMusic(status) : renderAnime(status));
     const q = el('input', { class: 'gsearch', type: 'search', placeholder: 'Chercher…', value: st.q, oninput: (e) => { st.q = e.target.value; redo(); } });
-    const genre = el('select', { class: 'gsel', onchange: (e) => { st.genre = e.target.value; redo(); } }, el('option', { value: '' }, 'Tous les genres'), ...genres.map((g) => el('option', { value: g, selected: st.genre === g }, g)));
+    const genre = el('select', { class: 'gsel', onchange: (e) => { st.genre = e.target.value; redo(); } }, el('option', { value: '' }, label), ...genres.map((g) => el('option', { value: g, selected: st.genre === g }, g)));
     const sort = el('select', { class: 'gsel', onchange: (e) => { st.sort = e.target.value; redo(); } }, ...SORTS[kind].map(([v, l]) => el('option', { value: v, selected: st.sort === v }, l)));
     const order = el('button', { class: 'gorder', type: 'button', title: 'Inverser l’ordre', onclick: () => { st.desc = !st.desc; redo(); } }, st.desc ? '↓ Décroissant' : '↑ Croissant');
     return el('div', { class: 'gtools' }, q, genres.length ? genre : null, sort, order);
@@ -408,6 +412,66 @@
     if (active) { const q = body.querySelector('.gsearch'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
   }
   $('aniSwitch').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; aniKind = b.dataset.kind; aniFilter = 'all'; renderAnime(status); });
+
+  /* ---------------- Musique : Spotify (écoutes vues par KuroPurr, playlists publiques) ---------------- */
+  const mins = (m) => m >= 60 ? `${Math.floor(m / 60)} h ${pad(m % 60)}` : `${m} min`;
+  const coverOf = (x, cls) => el('span', { class: cls }, String(x.titre || x.nom || '?').charAt(0), x.image ? el('img', { src: x.image, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }) : null);
+  function trackCard(t) {
+    const live = !t.fin;
+    return el('a', { class: 'gcard', href: t.url, target: '_blank', rel: 'noopener', title: `${t.titre} — ${t.artiste}` },
+      el('span', { class: 'cov sq' }, String(t.titre).charAt(0), t.image ? el('img', { src: t.image, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }) : null, el('span', { class: 'nm' }, el('span', {}, t.titre))),
+      el('div', { class: 'gi' },
+        el('div', { class: 'nums' }, el('span', {}, el('b', {}, live ? 'en cours' : dur(t.duree))), el('span', {}, live ? '' : when(t.fin))),
+        el('p', {}, [t.artiste, t.album].filter(Boolean).join(' · '))));
+  }
+  const topRow = (x, i, max, main, sub, round) => el('a', { class: 'toprow', href: x.url, target: '_blank', rel: 'noopener' },
+    el('span', { class: 'rank' }, String(i + 1)),
+    coverOf(x, `tpic ${round ? 'round' : ''}`),
+    el('span', { class: 'tt' }, el('strong', {}, main), el('span', { class: 'muted' }, sub), el('span', { class: 'bar' }, el('span', { class: 'fill', style: `width:${Math.max(3, (x.minutes / Math.max(1, max)) * 100)}%` }))),
+    el('span', { class: 'tn' }, el('b', {}, mins(x.minutes)), el('span', {}, `${x.ecoutes} écoute${x.ecoutes > 1 ? 's' : ''}`)));
+  const playlistCard = (p) => el('a', { class: 'gcard', href: p.url, target: '_blank', rel: 'noopener', title: p.titre },
+    el('span', { class: 'cov sq' }, String(p.titre).charAt(0), p.image ? el('img', { src: p.image, alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }) : null, el('span', { class: 'nm' }, el('span', {}, p.titre))),
+    el('div', { class: 'gi' }, el('p', {}, 'Ouvrir dans Spotify ↗')));
+  function renderMusic(s) {
+    for (const b of $('musSwitch').children) b.classList.toggle('on', b.dataset.mus === mus);
+    const body = $('musBody');
+    const active = document.activeElement && document.activeElement.classList.contains('gsearch');
+    if (mus === 'kuropurr') { body.replaceChildren(el('div', { class: 'wip' }, el('strong', {}, 'Encore en développement…'), 'KuroPurr Musique arrive : un lecteur intégré au client, et ce que j’y écoute s’affichera ici.')); return; }
+    const sp = s.spotify;
+    if (!sp) { body.replaceChildren(el('p', { class: 'empty' }, 'Pas de musique pour l’instant.')); return; }
+    const st = sp.stats || {};
+    const prof = sp.profil || {};
+    const sub = [st.heures30 ? `${st.heures30} h d’écoute sur 30 jours` : '', st.artistes30 ? `${st.artistes30} artistes` : '', sp.maj ? `vu ${when(sp.maj)}` : ''].filter(Boolean).join(' · ');
+    const now = sp.enCours ? el('a', { class: 'nowtrack', href: sp.enCours.url, target: '_blank', rel: 'noopener' },
+      coverOf(sp.enCours, 'tpic big'),
+      el('span', { class: 'tt' }, el('span', { class: 'rp-kind', style: 'color:#1ed760 !important' }, '● En ce moment sur Spotify'), el('strong', {}, sp.enCours.titre), el('span', { class: 'muted' }, [sp.enCours.artiste, sp.enCours.album].filter(Boolean).join(' · ')),
+        el('div', { class: 'bar' }, el('div', { class: 'fill', 'data-start': Date.parse(sp.enCours.debut), 'data-end': Date.parse(sp.enCours.fin) })),
+        el('span', { class: 'times' }, el('span', { class: 'pos' }, '0:00'), el('span', {}, fmtTime(Date.parse(sp.enCours.fin) - Date.parse(sp.enCours.debut)))))) : null;
+    const views = [['ecoutes', 'Dernières écoutes'], ['artistes', 'Top artistes'], ['titres', 'Top titres'], ['playlists', 'Playlists']];
+    const tabs = el('div', { class: 'ptags' }, views.map(([id, label]) => el('button', { class: `ptag ${musView === id ? 'on' : ''}`, type: 'button', onclick: () => { musView = id; renderMusic(status); } }, label)));
+    let main;
+    if (musView === 'ecoutes') {
+      const artists = [...new Set(sp.ecoutes.map((t) => t.artiste).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      const list = applyTools('spotify', sp.ecoutes.map((t) => ({ ...t, nom: t.titre, genres: [t.artiste] })), (t, k) => k === 'name' ? String(t.titre) : k === 'artist' ? String(t.artiste) : k === 'duration' ? t.duree || 0 : Date.parse(t.debut || 0));
+      main = [tools('spotify', artists, 'Tous les artistes'), scroller(list.map(trackCard), s.musique && s.musique.actif === false && !sp.ecoutes.length ? 'Rien écouté sur Spotify ces derniers temps.' : 'Rien ici.')];
+    } else if (musView === 'artistes') {
+      const max = Math.max(...sp.topArtistes.map((a) => a.minutes), 1);
+      main = [el('div', { class: 'scroller' }, sp.topArtistes.length ? el('div', { class: 'toplist' }, sp.topArtistes.map((a, i) => topRow(a, i, max, a.nom, 'sur 30 jours', true))) : el('p', { class: 'empty' }, 'Pas encore assez d’écoutes.'))];
+    } else if (musView === 'titres') {
+      const max = Math.max(...sp.topTitres.map((a) => a.minutes), 1);
+      main = [el('div', { class: 'scroller' }, sp.topTitres.length ? el('div', { class: 'toplist' }, sp.topTitres.map((t, i) => topRow(t, i, max, t.titre, t.artiste, false))) : el('p', { class: 'empty' }, 'Pas encore assez d’écoutes.'))];
+    } else {
+      main = [scroller(sp.playlists.map(playlistCard), 'Pas de playlist publique pour l’instant.')];
+    }
+    body.replaceChildren(gprofile({ nom: prof.pseudo || s.pseudo, avatar: prof.avatar || s.avatar, url: prof.url }, sub || null), el('hr'),
+      el('div', { class: 'pstats six' },
+        stat('Écoutes · 7 j', st.ecoutes7 || 0), stat('Heures · 7 j', st.heures7 || 0), stat('Écoutes · 30 j', st.ecoutes30 || 0), stat('Heures · 30 j', st.heures30 || 0), stat('Artistes · 30 j', st.artistes30 || 0), stat('Playlists', st.playlists || 0)),
+      now, el('hr'), tabs, ...main,
+      el('p', { class: 'muted small', style: 'margin:10px 0 0' }, 'Écoutes vues par KuroPurr sur Spotify ; pochettes via Deezer.'));
+    progress();
+    if (active) { const q = body.querySelector('.gsearch'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
+  }
+  $('musSwitch').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; mus = b.dataset.mus; renderMusic(status); });
 
   /* ---------------- Projets ---------------- */
   const STATUS = { en_cours: 'En cours', planifie: 'Planifié', termine: 'Terminé' };
