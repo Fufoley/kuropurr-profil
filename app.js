@@ -3,7 +3,7 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 (function () {
   'use strict';
-  const SITE_VERSION = '3.0';
+  const SITE_VERSION = '3.1';
   // Journal du site (le journal de KuroPurr vient de status.json)
   const SITE_LOG = [
     ['3.0', 'Page Divers : activité sur un an, trophées, tops, records, récap du mois, horaires, setup, collection, livre d’or, playlist des visiteurs, bouton coucou, visiteurs par pays, Cat.exe. Compteur GoatCounter. Journal des versions (clic sur les versions). Pochettes dans l’activité. Affichage mobile.'],
@@ -344,7 +344,17 @@
     for (const b of $('libSwitch').children) b.classList.toggle('on', b.dataset.lib === lib);
     const body = $('libBody');
     const active = document.activeElement && document.activeElement.classList.contains('gsearch');
-    if (lib === 'minecraft') { body.replaceChildren(el('div', { class: 'wip' }, el('strong', {}, 'Encore en développement…'), 'Le launcher Minecraft de KuroPurr arrive : ma bibliothèque s’affichera ici.')); return; }
+    if (lib === 'minecraft') {
+      const list = s.minecraft || [];
+      const LOADERS = { vanilla: 'Vanilla', fabric: 'Fabric', quilt: 'Quilt', forge: 'Forge', neoforge: 'NeoForge' };
+      const cards = list.map((i) => el('div', { class: 'gcard', title: i.nom },
+        el('span', { class: 'cov sq' }, String(i.nom).charAt(0), el('span', { class: 'nm' }, el('span', {}, i.nom))),
+        el('div', { class: 'gi' },
+          el('div', { class: 'nums' }, el('span', {}, el('b', {}, hours(i.heures))), el('span', {}, i.dernier ? dateFmt.format(Date.parse(i.dernier)) : '')),
+          el('p', {}, `Minecraft ${i.version} · ${LOADERS[i.loader] || i.loader}${i.mods ? ` · ${i.mods} mod${i.mods > 1 ? 's' : ''}` : ''}`))));
+      body.replaceChildren(el('p', { class: 'muted small' }, 'Mes instances dans le launcher de KuroPurr.'), scroller(cards, 'Pas d’instance Minecraft pour l’instant.'));
+      return;
+    }
     if (lib === 'roblox') {
       const r = s.roblox;
       if (!r) { body.replaceChildren(el('p', { class: 'empty' }, 'Pas de bibliothèque Roblox pour l’instant.')); return; }
@@ -454,7 +464,24 @@
     for (const b of $('musSwitch').children) b.classList.toggle('on', b.dataset.mus === mus);
     const body = $('musBody');
     const active = document.activeElement && document.activeElement.classList.contains('gsearch');
-    if (mus === 'kuropurr') { body.replaceChildren(el('div', { class: 'wip' }, el('strong', {}, 'Encore en développement…'), 'KuroPurr Musique arrive : un lecteur intégré au client, et ce que j’y écoute s’affichera ici.')); return; }
+    if (mus === 'kuropurr') {
+      const kp = (s.spotify && s.spotify.kuropurr) || {};
+      const cur = kp.enCours;
+      const now = cur ? el('div', { class: 'nowtrack' },
+        coverOf(cur, 'tpic big'),
+        el('span', { class: 'tt' }, el('span', { class: 'rp-kind' }, cur.radio ? '● En ce moment · webradio' : '● En ce moment · KuroPurr Musique'), el('strong', {}, cur.titre), el('span', { class: 'muted' }, [cur.artiste, cur.album].filter(Boolean).join(' · ')),
+          cur.radio ? null : el('div', { class: 'bar' }, el('div', { class: 'fill', 'data-start': Date.parse(cur.debut), 'data-end': Date.parse(cur.fin) })),
+          cur.radio ? null : el('span', { class: 'times' }, el('span', { class: 'pos' }, '0:00'), el('span', {}, fmtTime(Date.parse(cur.fin) - Date.parse(cur.debut)))))) : null;
+      const list = (kp.ecoutes || []).map((t) => trackCard({ ...t, url: t.url || undefined }));
+      const sub = [kp.heures30 ? `${kp.heures30} h sur 30 jours` : '', (kp.radios || []).length ? `${kp.radios.length} radio${kp.radios.length > 1 ? 's' : ''} écoutée${kp.radios.length > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
+      body.replaceChildren(...[
+        el('p', { class: 'muted small' }, `Ce que j’écoute dans le lecteur de KuroPurr : ma musique à moi (hors ligne) et des webradios.${sub ? ' ' + sub + '.' : ''}`),
+        now,
+        (kp.radios || []).length ? el('div', { class: 'ptags' }, kp.radios.map((r) => el('span', { class: 'ptag on' }, '📻 ' + r))) : null,
+        scroller(list, 'Rien écouté dans KuroPurr Musique pour l’instant.'),
+      ].filter(Boolean));
+      return;
+    }
     const sp = s.spotify;
     if (!sp) { body.replaceChildren(el('p', { class: 'empty' }, 'Pas de musique pour l’instant.')); return; }
     const st = sp.stats || {};
