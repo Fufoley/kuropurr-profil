@@ -6,7 +6,7 @@
   <title>Profil</title>
   <meta name="description" content="Mon profil, mis à jour par KuroPurr." />
   <link rel="icon" href="logo.png" />
-  <link rel="stylesheet" href="style.css?v=0.22.0" />
+  <link rel="stylesheet" href="style.css?v=0.23.0" />
 </head>
 <body>
   <div class="bg" id="bg" aria-hidden="true"></div>
@@ -58,7 +58,7 @@
 
         <!-- Activité -->
         <section class="box card">
-          <h2 id="nowTitle">Activité en cours</h2>
+          <div class="now-head"><h2 id="nowTitle">Activité en cours</h2><span class="live-tag" id="liveTag" title="Activité en cours : la page se met à jour plus souvent" hidden>en direct</span></div>
           <div id="now"></div>
           <button class="link-btn" id="nowMore" type="button" hidden>Voir toutes les activités en cours</button>
           <div id="nowAll" hidden></div>
@@ -154,6 +154,7 @@
   </div>
 
   <script src="config.js"></script>
-  <script src="app.js?v=0.22.0"></script>
+  <script src="extras.js?v=0.23.0"></script>
+  <script src="app.js?v=0.23.0"></script>
 </body>
 </html>
