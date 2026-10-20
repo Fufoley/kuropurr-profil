@@ -3,9 +3,10 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 (function () {
   'use strict';
-  const SITE_VERSION = '3.2';
+  const SITE_VERSION = '3.3';
   // Journal du site (le journal de KuroPurr vient de status.json)
   const SITE_LOG = [
+    ['3.3', 'Carte « En ce moment dans ma vie », comptes à rebours « Bientôt », tuile Habitudes. Mise à jour « en direct » quand je joue ou écoute. Thèmes de saison (Halloween, Noël, Nouvel An). Carte du monde des visiteurs. Mes critiques d’animés et de jeux.'],
     ['3.2', 'Animés en cours (anime-sama, via l’extension KuroPurr) dans l’activité, avec affiche et épisode. Statut « Concentré » pendant le mode focus. Coups de cœur Spotify dans la tuile Playlist. Heures d’animé et de focus dans les stats et les récaps.'],
     ['3.0', 'Page Divers : activité sur un an, trophées, tops, records, récap du mois, horaires, setup, collection, livre d’or, playlist des visiteurs, bouton coucou, visiteurs par pays, Cat.exe. Compteur GoatCounter. Journal des versions (clic sur les versions). Pochettes dans l’activité. Affichage mobile.'],
     ['2.2', 'Page Musique : Spotify (écoutes, tops, playlists), KuroPurr Musique à venir.'],
@@ -18,7 +19,9 @@
     ['1.5', 'Refonte : carrés transparents, page Profil.'],
   ];
   const CONFIG = window.KP_PROFIL || {};
-  const REFRESH_MS = 8000;
+  // 0.23 : relecture de status.json selon l'état — « en direct » (activité en cours) 15 s, en ligne 30 s,
+  // hors ligne 60 s ; aucune requête tant que l'onglet est caché.
+  const LIVE_MS = 15000, IDLE_MS = 30000, OFFLINE_MS = 60000;
   const OFFLINE_AFTER_MS = 3 * 60 * 1000;
   const LANYARD_MS = 30000;
   const HISTORY_SHORT = 3;
@@ -162,6 +165,7 @@
 
     renderDiscord(s);
     renderActivity(s, online);
+    renderOrga(s);
     renderLinks(s);
     renderPosts(s);
     renderProjects(s);
@@ -170,6 +174,9 @@
     renderMusic(s);
     renderDivers(s);
     showPage(page);
+    // 0.23 : thème de saison (réglable dans KuroPurr) et indicateur « en direct »
+    if (window.KP_EXTRAS) window.KP_EXTRAS.appliquerSaison(s.saisons !== false);
+    $('liveTag').hidden = !isLive(s);
 
     $('updated').textContent = s.majLe ? `Dernière mise à jour : ${when(s.majLe)}` : 'Pas encore de mise à jour';
     loadLanyard(s.discordId);
@@ -344,6 +351,20 @@
     out.sort((a, b) => { const ka = keyOf(a, st.sort), kb = keyOf(b, st.sort); const r = typeof ka === 'string' ? ka.localeCompare(kb) : ka - kb; return st.desc ? -r : r; });
     return out;
   }
+  /* Mes critiques (KuroPurr 0.23) : notes perso publiées, en bloc discret sous la bibliothèque. */
+  function critiquesBlock(s, type) {
+    const list = (Array.isArray(s.critiques) ? s.critiques : []).filter((c) => c && c.type === type && c.titre);
+    if (!list.length) return [];
+    const safe = (u) => (typeof u === 'string' && u.startsWith('https://') ? u : null);
+    return [el('details', { class: 'crits' }, el('summary', {}, `Mes critiques (${list.length})`),
+      el('div', { class: 'crits-list' }, list.map((c) => el('article', { class: 'crit' },
+        safe(c.image) ? el('img', { src: safe(c.image), alt: '', loading: 'lazy', class: type === 'jeu' ? 'wide' : '', onerror: (e) => e.target.remove() }) : null,
+        el('div', { class: 'crit-body' },
+          el('div', { class: 'crit-top' }, safe(c.url) ? el('a', { href: safe(c.url), target: '_blank', rel: 'noopener' }, c.titre) : el('b', {}, c.titre),
+            c.note != null ? el('span', { class: 'star' }, '★ ', el('b', {}, `${c.note}/10`)) : null),
+          c.texte ? el('p', {}, c.texte) : null,
+          c.date ? el('small', { class: 'muted' }, dateFmt.format(Date.parse(c.date))) : null)))))];
+  }
   const scroller = (cards, empty) => el('div', { class: 'scroller' }, cards.length ? el('div', { class: 'ggrid' }, cards) : el('p', { class: 'empty' }, empty));
   function renderGames(s) {
     for (const b of $('libSwitch').children) b.classList.toggle('on', b.dataset.lib === lib);
@@ -385,7 +406,8 @@
           stat('Non installés', st.total - st.installes, 'notinstalled', steamFilter === 'notinstalled', () => pick('notinstalled')),
           stat('Souhaits', st.souhaits.length, 'wish', steamFilter === 'wish', () => pick('wish'))),
         el('hr'), tools('steam', genres),
-        scroller(list.map((g) => steamCard(g, wish)), wish ? 'Liste de souhaits vide ou privée.' : 'Aucun jeu.'));
+        scroller(list.map((g) => steamCard(g, wish)), wish ? 'Liste de souhaits vide ou privée.' : 'Aucun jeu.'),
+        ...critiquesBlock(s, 'jeu'));
     }
     if (active) { const q = body.querySelector('.gsearch'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
   }
@@ -441,7 +463,8 @@
       el('div', { class: `pstats ${counters.length === 6 ? 'six' : counters.length === 3 ? 'three' : ''}` }, counters),
       el('hr'), tools(aniKind, genres),
       scroller(list.map((a) => aniCard(a, aniKind)), 'Rien ici.'),
-      ...(foot ? [el('p', { class: 'muted small', style: 'margin:10px 0 0' }, foot)] : []));
+      ...(foot ? [el('p', { class: 'muted small', style: 'margin:10px 0 0' }, foot)] : []),
+      ...(aniKind === 'anime' ? critiquesBlock(s, 'anime') : []));
     if (active) { const q = body.querySelector('.gsearch'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
   }
   $('aniSwitch').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; aniKind = b.dataset.kind; aniFilter = 'all'; renderAnime(status); });
@@ -702,6 +725,7 @@
     ping: ['👋', 'Me faire coucou', (d) => `${(d.evenements || {}).ping || 0} coucou${((d.evenements || {}).ping || 0) > 1 ? 's' : ''}`],
     visiteurs: ['🌍', 'Visiteurs', (d) => d.visiteurs ? `${(d.visiteurs.total || 0).toLocaleString('fr-FR')} · ${(d.visiteurs.pays || []).length} pays` : 'bientôt'],
     chat: ['🐈‍⬛', 'Cat.exe', (d) => `${(d.evenements || {}).calins || 0} câlin${((d.evenements || {}).calins || 0) > 1 ? 's' : ''}`],
+    habitudes: ['✅', 'Habitudes', (d) => d.habitudes ? `série de ${d.habitudes.serie} jour${d.habitudes.serie > 1 ? 's' : ''} · record ${d.habitudes.record}` : 'bientôt'],
   };
   function peakLabel(h) {
     if (!h || !h.some((x) => x > 0)) return 'pas encore assez de données';
@@ -738,6 +762,7 @@
       case 'ping': return open('Me faire coucou', pingView(d));
       case 'visiteurs': return open('Visiteurs', visitorsView(d.visiteurs));
       case 'chat': return open('Cat.exe', catView(d));
+      case 'habitudes': return open('Habitudes', habitsView(d.habitudes));
       default: return null;
     }
   }
@@ -808,6 +833,53 @@
     };
     wrap.replaceChildren(el('h2', {}, 'Choisis un top'), grid());
     return [wrap];
+  }
+  /* ---------------- Organisation (KuroPurr 0.23) : bientôt, maintenant, habitudes ---------------- */
+  const soonLabel = (iso) => {
+    const t = Date.parse(iso), diff = t - Date.now();
+    if (new Date(t).toDateString() === new Date().toDateString()) return 'aujourd’hui';
+    if (diff <= 0) return 'passé';
+    const h = Math.floor(diff / 3600000), d = Math.floor(h / 24);
+    return d ? `dans ${d} j${h % 24 ? ` ${h % 24} h` : ''}` : `dans ${h} h`;
+  };
+  function orgaCard(id, after) {
+    let box = $(id);
+    if (!box && after) { box = el('section', { class: 'box card', id }); after.after(box); }
+    return box;
+  }
+  function renderOrga(s) {
+    const activity = $('history') && $('history').closest('section');
+    const soon = (Array.isArray(s.bientot) ? s.bientot : []).filter((c) => c && c.nom && c.date);
+    const now = s.maintenant && typeof s.maintenant === 'object' && s.maintenant.texte ? s.maintenant : null;
+    const soonBox = orgaCard('orgaSoon', activity);
+    const nowBox = orgaCard('orgaNow', soonBox);
+    if (nowBox) {
+      nowBox.hidden = !now;
+      if (now) {
+        const md = el('div', { class: 'md' });
+        md.innerHTML = markdown(now.texte);
+        nowBox.replaceChildren(el('h2', {}, 'En ce moment dans ma vie'), md,
+          now.maj ? el('p', { class: 'muted small', style: 'margin:10px 0 0' }, `Mis à jour le ${new Date(now.maj).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`) : null);
+      }
+    }
+    if (soonBox) {
+      soonBox.hidden = !soon.length;
+      soonBox.replaceChildren(el('h2', {}, 'Bientôt'), el('ul', { class: 'list' }, soon.map((c) => el('li', {},
+        el('span', { class: 'k' }, c.emoji || '⏳'),
+        el('span', { class: 't' }, c.nom),
+        el('time', { datetime: c.date, title: new Date(c.date).toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) }, soonLabel(c.date))))));
+    }
+  }
+  function habitsView(x) {
+    if (!x) return [note('Pas encore d’habitude suivie.')];
+    const today = x.aujourdhui || {};
+    const list = Array.isArray(x.liste) ? x.liste : [];
+    return [
+      el('div', { class: 'pstats' }, stat('Série en cours', `${x.serie} j`), stat('Record', `${x.record} j`), stat('Aujourd’hui', `${today.faites || 0}/${today.prevues || 0}`), stat('Tenues (30 j)', x.taux30 == null ? '—' : `${x.taux30} %`)),
+      list.length ? el('hr') : null,
+      list.length ? el('ul', { class: 'list' }, list.map((h) => el('li', {}, el('span', { class: 'k' }, h.emoji || '✅'), el('span', { class: 't' }, h.nom), el('time', {}, `🔥 ${h.serie} j · record ${h.record}`)))) : null,
+      note(`${x.actives} habitude${x.actives > 1 ? 's' : ''} suivie${x.actives > 1 ? 's' : ''} avec KuroPurr. Une série compte les jours d’affilée où l’habitude prévue a été tenue.`),
+    ];
   }
   function recordsView(r) {
     if (!r) return [note('Pas encore de records.')];
@@ -931,6 +1003,7 @@
     return [
       el('div', { class: 'pstats three' }, stat('Visiteurs', (v.total || 0).toLocaleString('fr-FR')), stat('Pays', pays.length), stat('Mis à jour', v.maj ? ago(v.maj) : '—')),
       el('hr'),
+      pays.length && window.KP_EXTRAS ? el('div', { class: 'wmap' }, window.KP_EXTRAS.carte(pays)) : null,
       pays.length ? el('div', { class: 'toplist' }, pays.slice(0, 30).map((p, i) => el('div', { class: 'toprow' }, el('span', { class: 'rank' }, String(i + 1)), el('span', { class: 'tpic round flagpic' }, flag(p.code)), el('span', { class: 'tt' }, el('strong', {}, p.nom || p.code), el('span', { class: 'bar' }, el('span', { class: 'fill', style: `width:${Math.max(3, (p.n / max) * 100)}%` }))), el('span', { class: 'tn' }, el('b', {}, p.n.toLocaleString('fr-FR')))))) : el('p', { class: 'empty' }, 'Pas encore de visiteurs comptés.'),
       note('Visiteurs uniques comptés par GoatCounter, sans cookie ni traçage : seul le pays est agrégé.'),
     ];
@@ -972,7 +1045,7 @@
     const obs = new MutationObserver(() => { if ($('modal').hidden) { clearInterval(idleTimer); obs.disconnect(); } });
     obs.observe($('modal'), { attributes: true });
     return [
-      el('div', { class: 'center' }, el('span', { class: 'catpad' }, cat), el('div', { class: 'calins' }, count, el('span', { class: 'muted small' }, ' câlins')), hint),
+      el('div', { class: 'center' }, el('span', { class: 'catpad' }, cat, window.KP_EXTRAS ? window.KP_EXTRAS.chapeau() : null), el('div', { class: 'calins' }, count, el('span', { class: 'muted small' }, ' câlins')), hint),
       el('hr'),
       el('p', { class: 'muted small' }, `🥚 Œufs de Pâques trouvés sur ce site : ${eggs.length} / ${EGGS.length}. ${eggs.length ? `Trouvés : ${eggs.map((e) => EGG_NAMES[e]).join(', ')}.` : 'Il y en a cachés un peu partout…'}`),
     ];
@@ -1070,8 +1143,19 @@
     }
   }
 
-  load();
-  setInterval(load, REFRESH_MS);
+  /* ---------------- Relecture : plus souvent en direct, jamais onglet caché ---------------- */
+  function isLive(s) {
+    if (!s || !s.enLigne || !s.majLe || Date.now() - Date.parse(s.majLe) >= OFFLINE_AFTER_MS) return false;
+    return !!((s.jeu && s.jeu.actif) || (s.musique && s.musique.actif) || (s.regarde && s.regarde.actif) || s.activites.some((a) => a.debut && !a.fin));
+  }
+  const rhythm = () => isLive(status) ? LIVE_MS : status && status.enLigne && status.majLe && Date.now() - Date.parse(status.majLe) < OFFLINE_AFTER_MS ? IDLE_MS : OFFLINE_MS;
+  let loadTimer = null;
+  function schedule() {
+    clearTimeout(loadTimer);
+    if (document.hidden) return;
+    loadTimer = setTimeout(() => load().finally(schedule), rhythm());
+  }
+  load().finally(schedule);
   setInterval(progress, 1000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+  document.addEventListener('visibilitychange', () => { clearTimeout(loadTimer); if (!document.hidden) load().finally(schedule); });
 })();
