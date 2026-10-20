@@ -451,3 +451,48 @@ body.paws, body.paws * { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http:/
   .links { grid-template-columns: 1fr 1fr; }
   .pstats, .pstats.five, .pstats.six, .pstats.three { grid-template-columns: repeat(2, 1fr); gap: 6px; }
 }
+
+/* ---------- 0.23 · en direct, carte des visiteurs, saisons ---------- */
+.live-tag { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px 1px 6px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; color: #f2f3f5; background: rgba(237, 66, 69, .16); border: 1px solid rgba(237, 66, 69, .38); }
+.live-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #ed4245; animation: live-pulse 1.6s ease-in-out infinite; }
+@keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.wmap { margin: 0 0 14px; padding: 10px; border-radius: 12px; background: var(--box-2); border: 1px solid var(--line); }
+.wmap-svg { display: block; width: 100%; height: auto; }
+.wmap-land { fill: rgba(255, 255, 255, .16); }
+.wmap-halo { fill: color-mix(in srgb, var(--accent) 22%, transparent); }
+.wmap-dot { fill: var(--accent); stroke: rgba(0, 0, 0, .45); stroke-width: .5; }
+.wmap-pt:hover .wmap-halo { fill: color-mix(in srgb, var(--accent) 45%, transparent); }
+/* Saisons : accent changé par extras.js, décoration légère par-dessus, jamais cliquable */
+.saison-tag { flex: none; font-size: 12px; white-space: nowrap; }
+@media (max-width: 600px) { .saison-halloween .spider { display: none; } }
+.now-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; }
+.now-head h2 { margin: 0; }
+.saison-deco { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+.saison-noel .saison-deco i { position: absolute; top: -10px; width: var(--w); height: var(--w); border-radius: 50%; background: rgba(255, 255, 255, .7); animation: neige var(--d) linear infinite; }
+@keyframes neige { to { transform: translate(24px, 105vh); } }
+.saison-halloween .spider { position: absolute; top: 0; right: 2.5%; width: 1px; height: 64px; background: rgba(255, 255, 255, .35); animation: araignee 6s ease-in-out infinite; }
+.saison-halloween .spider::after { content: ''; position: absolute; left: -7px; bottom: -10px; width: 15px; height: 12px; border-radius: 50% 50% 45% 45%; background: #121212; box-shadow: 0 0 0 1px rgba(242, 140, 56, .6); }
+@keyframes araignee { 0%, 100% { height: 64px; } 50% { height: 92px; } }
+.saison-nouvelan .saison-deco i { position: absolute; width: 5px; height: 5px; background: var(--accent); opacity: 0; animation: etincelle 4s ease-in-out infinite; }
+@keyframes etincelle { 0%, 100% { opacity: 0; transform: rotate(45deg) scale(.4); } 50% { opacity: .8; transform: rotate(45deg) scale(1); } }
+.catpad { position: relative; }
+.cat-hat { position: absolute; left: 57%; top: 21%; width: 19%; transform: rotate(14deg); pointer-events: none; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .4)); }
+@media (prefers-reduced-motion: reduce) { .saison-deco { display: none; } }
+/* ---------- KuroPurr 0.23 · Mes critiques (discret, sous la bibliothèque) ---------- */
+.crits { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.crits summary { cursor: pointer; font-size: 13px; color: var(--muted); list-style: none; }
+.crits summary::-webkit-details-marker { display: none; }
+.crits summary::before { content: '▸ '; }
+.crits[open] summary::before { content: '▾ '; }
+.crits summary:hover { color: var(--text); }
+.crits-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 340px; overflow: auto; }
+.crit { display: flex; gap: 10px; padding: 10px; border-radius: 12px; background: var(--box-2); border: 1px solid var(--line); }
+.crit img { width: 44px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; flex: none; }
+.crit img.wide { width: 92px; aspect-ratio: 460 / 215; }
+.crit-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.crit-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 13px; }
+.crit-top a { color: var(--text); font-weight: 700; text-decoration: none; }
+.crit-top a:hover { color: var(--accent); }
+.crit .star, .crit .star b { color: #f5c542; white-space: nowrap; font-size: 12px; }
+.crit p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--text); opacity: .9; white-space: pre-line; }
+.crit small { font-size: 11px; }
