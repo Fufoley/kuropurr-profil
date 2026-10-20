@@ -3,9 +3,10 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 (function () {
   'use strict';
-  const SITE_VERSION = '3.1';
+  const SITE_VERSION = '3.2';
   // Journal du site (le journal de KuroPurr vient de status.json)
   const SITE_LOG = [
+    ['3.2', 'Animés en cours (anime-sama, via l’extension KuroPurr) dans l’activité, avec affiche et épisode. Statut « Concentré » pendant le mode focus. Coups de cœur Spotify dans la tuile Playlist. Heures d’animé et de focus dans les stats et les récaps.'],
     ['3.0', 'Page Divers : activité sur un an, trophées, tops, records, récap du mois, horaires, setup, collection, livre d’or, playlist des visiteurs, bouton coucou, visiteurs par pays, Cat.exe. Compteur GoatCounter. Journal des versions (clic sur les versions). Pochettes dans l’activité. Affichage mobile.'],
     ['2.2', 'Page Musique : Spotify (écoutes, tops, playlists), KuroPurr Musique à venir.'],
     ['2.1', 'Médiathèque : séries et films via Simkl.'],
@@ -87,6 +88,7 @@
   const ICONS = {
     jeu: '<path d="M7.5 8h9a4.5 4.5 0 0 1 4.4 5.5l-.8 3.5a2.2 2.2 0 0 1-3.8 1l-2-2.2h-4.6l-2 2.2a2.2 2.2 0 0 1-3.8-1l-.8-3.5A4.5 4.5 0 0 1 7.5 8z"/>',
     musique: '<path d="M9 17.5V5.5l10-2v12"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/>',
+    anime: '<rect x="3" y="5" width="18" height="13" rx="2"/><path d="m10 9 5 2.5-5 2.5z"/><path d="M8 21h8"/>',
   };
   const SOCIAL = { discord: '#5865f2', twitch: '#9146ff', youtube: '#ff2d2d', github: '#8b949e', x: '#cfd3d8', twitter: '#1d9bf0', instagram: '#e1306c', tiktok: '#69c9d0', steam: '#66c0f4', spotify: '#1db954', roblox: '#e2231a', reddit: '#ff4500', kick: '#53fc18', myanimelist: '#2e51a2', anilist: '#3db4f2', bluesky: '#0085ff', mastodon: '#6364ff', linkedin: '#0a66c2', patreon: '#ff424d', kofi: '#ff5e5b', deezer: '#a238ff', soundcloud: '#ff5500', snapchat: '#fffc00', telegram: '#26a5e4', site: '#a9c59b', mail: '#a9c59b' };
   const colorOf = (name) => SOCIAL[String(name).toLowerCase().replace(/[^a-z]/g, '')] || (status && status.accent) || '#a9c59b';
@@ -141,7 +143,9 @@
     const online = !!s.enLigne && age < OFFLINE_AFTER_MS;
     $('dot').className = `dot ${online ? (s.nePasDeranger ? 'dnd' : 'on') : ''}`;
     $('statusText').textContent = online
-      ? `${s.nePasDeranger ? 'Ne pas déranger' : 'En ligne'}${s.enLigneDepuis ? ` · depuis ${since(s.enLigneDepuis)}` : ''}`
+      ? (s.focus && s.focus.actif && Date.parse(s.focus.jusqua) > Date.now()
+        ? `🎯 Concentré · encore ${Math.max(1, Math.ceil((Date.parse(s.focus.jusqua) - Date.now()) / 60000))} min`
+        : `${s.nePasDeranger ? 'Ne pas déranger' : 'En ligne'}${s.enLigneDepuis ? ` · depuis ${since(s.enLigneDepuis)}` : ''}`)
       : s.vu && s.vu.quand ? `Hors ligne · vu ${ago(s.vu.quand)}${s.vu.source ? ` sur ${s.vu.source}` : ''}` : s.majLe ? `Hors ligne · depuis ${when(s.majLe)}` : 'Hors ligne';
     $('verClient').textContent = s.versionClient || '—';
     $('verSite').textContent = SITE_VERSION;
@@ -191,7 +195,8 @@
     // En cours : les sessions ouvertes (si KuroPurr est en ligne) ; la musique reçoit sa fin prévue
     let current = online ? all.filter((a) => !a.fin) : [];
     current = current.map((a) => a.type === 'musique' && s.musique.actif && s.musique.titre === a.nom ? { ...a, finPrevue: s.musique.fin } : a);
-    current.sort((a, b) => (a.type === 'jeu' ? 0 : 1) - (b.type === 'jeu' ? 0 : 1));
+    const rank = { jeu: 0, anime: 1, musique: 2 };
+    current.sort((a, b) => (rank[a.type] ?? 3) - (rank[b.type] ?? 3));
     const past = all.filter((a) => a.fin);
     const nowBox = $('now'), more = $('nowMore');
     $('nowAll').hidden = true;
@@ -693,7 +698,7 @@
     setup: ['🖥️', 'Setup', (d) => d.setup && d.setup.machine && d.setup.machine.processeur ? d.setup.machine.processeur.split(' · ')[0].replace(/\(R\)|\(TM\)|CPU|Processor/g, '').trim() : 'mon PC'],
     collection: ['🎞️', 'Collection', (d) => `${(d.collection || []).length} média${(d.collection || []).length > 1 ? 's' : ''}`],
     livreOr: ['📖', 'Livre d’or', (d) => `${((d.livreOr || {}).messages || []).length} message${((d.livreOr || {}).messages || []).length > 1 ? 's' : ''}`],
-    playlist: ['🎵', 'Playlist des visiteurs', (d) => `${((d.playlist || {}).propositions || []).length} proposition${((d.playlist || {}).propositions || []).length > 1 ? 's' : ''}`],
+    playlist: ['🎵', 'Playlist', (d) => { const p = d.playlist || {}; const n = (p.propositions || []).length; const c = (p.coupsDeCoeur || []).length; return `${c ? `${c} coup${c > 1 ? 's' : ''} de cœur · ` : ''}${n} proposition${n > 1 ? 's' : ''}`; }],
     ping: ['👋', 'Me faire coucou', (d) => `${(d.evenements || {}).ping || 0} coucou${((d.evenements || {}).ping || 0) > 1 ? 's' : ''}`],
     visiteurs: ['🌍', 'Visiteurs', (d) => d.visiteurs ? `${(d.visiteurs.total || 0).toLocaleString('fr-FR')} · ${(d.visiteurs.pays || []).length} pays` : 'bientôt'],
     chat: ['🐈‍⬛', 'Cat.exe', (d) => `${(d.evenements || {}).calins || 0} câlin${((d.evenements || {}).calins || 0) > 1 ? 's' : ''}`],
@@ -729,7 +734,7 @@
       case 'setup': return open('Setup', setupView(d.setup));
       case 'collection': return open('Collection', collectionView(d.collection || []), true);
       case 'livreOr': return open('Livre d’or', guestbookView(d.livreOr || {}), true);
-      case 'playlist': return open('Playlist des visiteurs', playlistView(d.playlist || {}));
+      case 'playlist': return open('Playlist', playlistView(d.playlist || {}));
       case 'ping': return open('Me faire coucou', pingView(d));
       case 'visiteurs': return open('Visiteurs', visitorsView(d.visiteurs));
       case 'chat': return open('Cat.exe', catView(d));
@@ -752,12 +757,12 @@
     weeks.forEach((w, i) => { const c = w.find(Boolean); if (!c) return; const dt = new Date(c.d + 'T00:00:00'); if (dt.getDate() <= 7) months.push([i, dt.toLocaleDateString('fr-FR', { month: 'short' })]); });
     const grid = el('div', { class: 'heat' },
       el('div', { class: 'heat-months' }, months.map(([i, m]) => el('span', { style: `grid-column:${i + 1}` }, m))),
-      el('div', { class: 'heat-grid', style: `grid-template-columns:repeat(${weeks.length}, 1fr)` }, weeks.map((w) => el('div', { class: 'heat-col' }, [0, 1, 2, 3, 4, 5, 6].map((k) => { const c = w[k]; return el('span', { class: `heat-cell l${c ? level(c.j + c.m) : 0} ${c ? '' : 'none'}`, title: c ? `${new Date(c.d + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} · jeu ${hms(c.j)} · musique ${hms(c.m)}` : '' }); })))),
+      el('div', { class: 'heat-grid', style: `grid-template-columns:repeat(${weeks.length}, 1fr)` }, weeks.map((w) => el('div', { class: 'heat-col' }, [0, 1, 2, 3, 4, 5, 6].map((k) => { const c = w[k]; return el('span', { class: `heat-cell l${c ? level(c.j + c.m) : 0} ${c ? '' : 'none'}`, title: c ? `${new Date(c.d + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} · jeu ${hms(c.j)} · musique ${hms(c.m)}${c.a ? ` · animé ${hms(c.a)}` : ''}` : '' }); })))),
       el('div', { class: 'heat-legend muted small' }, 'moins ', [0, 1, 2, 3, 4].map((l) => el('span', { class: `heat-cell l${l}` })), ' plus'));
     const last30 = days.slice(-30);
     const sum = (k) => last30.reduce((n, x) => n + x[k], 0);
     return [
-      el('div', { class: 'pstats' }, stat('Jours actifs', a.joursActifs), stat('Heures de jeu', a.heuresJeu), stat('Heures de musique', a.heuresMusique), stat('30 derniers jours', hms(sum('j') + sum('m')))),
+      el('div', { class: 'pstats' }, stat('Jours actifs', a.joursActifs), stat('Heures de jeu', a.heuresJeu), stat('Heures de musique', a.heuresMusique), a.heuresAnime ? stat('Heures d’animé', a.heuresAnime) : null, stat('30 derniers jours', hms(sum('j') + sum('m') + last30.reduce((n, x) => n + (x.a || 0), 0)))),
       el('hr'), grid,
       note('Une case par jour sur un an : jeu et musique vus par KuroPurr (au moins 5 min pour compter un jour actif).'),
     ];
@@ -815,7 +820,9 @@
       row('📅', 'Journée la plus chargée', r.journeeMax && hms(r.journeeMax.secondes), r.journeeMax && new Date(r.journeeMax.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })),
       row('🌙', 'Nuit la plus tardive', r.nuitTardive && `fin à ${r.nuitTardive.heure}`, r.nuitTardive && r.nuitTardive.nom),
       row('🧭', 'Jeux différents (90 j)', r.jeuxDifferents ? String(r.jeuxDifferents) : null),
-      row('🎮', 'Total', `${r.heuresJeu} h de jeu · ${r.heuresMusique} h de musique`, `${r.joursActifs} jours actifs`),
+      row('🎮', 'Total', `${r.heuresJeu} h de jeu · ${r.heuresMusique} h de musique${r.heuresAnime ? ` · ${r.heuresAnime} h d’animé` : ''}`, `${r.joursActifs} jours actifs`),
+      r.episodesAnime ? row('📺', 'Épisodes d’animé vus', String(r.episodesAnime)) : null,
+      r.heuresFocus ? row('🎯', 'Temps en mode focus', `${r.heuresFocus} h`) : null,
     ];
   }
   function recapView(recaps) {
@@ -827,6 +834,8 @@
         m.jeu ? el('span', {}, '🎮 Jeu du mois : ', el('b', {}, m.jeu.nom), ` (${m.jeu.heures} h)`) : null,
         m.artiste ? el('span', {}, '🎤 Artiste du mois : ', el('b', {}, m.artiste.nom), ` (${m.artiste.minutes} min)`) : null,
         m.titre ? el('span', {}, '🎵 Titre du mois : ', el('b', {}, m.titre.titre), ` — ${m.titre.artiste} (${m.titre.ecoutes} écoutes)`) : null,
+        m.anime ? el('span', {}, '📺 Animé du mois : ', el('b', {}, m.anime.nom), ` (${m.anime.heures} h)`) : null,
+        m.heuresFocus ? el('span', {}, '🎯 Mode focus : ', el('b', {}, `${m.heuresFocus} h`)) : null,
         m.nuit ? el('span', {}, '🌙 Nuit la plus tardive : ', el('b', {}, m.nuit)) : null)));
   }
   function hoursView(a) {
@@ -886,6 +895,13 @@
   }
   function playlistView(p) {
     return [
+      (p.coupsDeCoeur || []).length ? el('h2', {}, '♥ Mes coups de cœur') : null,
+      (p.coupsDeCoeur || []).length ? el('ul', { class: 'list picks' }, p.coupsDeCoeur.map((x) => el('li', {},
+        el('span', { class: 'k' }, x.image ? el('img', { src: x.image, alt: '', onerror: (e) => e.target.replaceWith(svg(ICONS.musique)) }) : svg(ICONS.musique)),
+        el('span', { class: 't' }, x.url ? el('a', { href: x.url, target: '_blank', rel: 'noopener' }, x.titre) : x.titre, el('span', {}, ` · ${x.artiste}`)),
+        el('time', { datetime: x.date }, dateFmt.format(Date.parse(x.date)))))) : null,
+      (p.coupsDeCoeur || []).length ? el('hr') : null,
+      el('h2', {}, 'Vos propositions'),
       el('p', { class: 'muted small' }, 'Les morceaux que vous me conseillez. Je les écoute, et ceux que je valide apparaissent ici.'),
       msgRows(p.propositions || [], 'Aucune proposition pour l’instant.'),
       el('hr'),
