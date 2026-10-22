@@ -13,8 +13,8 @@ import {
   since,
   svg,
   when,
-} from './outils.js?v=0.26.0';
-import { openSheet } from './rendu.js?v=0.26.0';
+} from './outils.js?v=0.27.1';
+import { openSheet } from './rendu.js?v=0.27.1';
 
 const HISTORY_SHORT = 3;
 const HISTORY_DAYS = 7;
