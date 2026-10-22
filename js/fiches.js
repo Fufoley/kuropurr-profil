@@ -1,9 +1,9 @@
 // Page du profil : autres fiches de la page Divers — habitudes, records, récap, horaires, setup, collection, livre d'or, playlist, coucou, visiteurs.
-import { $, ago, dateFmt, el, ICONS, svg } from './outils.js?v=0.26.0';
-import { zoom } from './rendu.js?v=0.26.0';
-import { stat } from './bibliotheque.js?v=0.26.0';
-import { flag, hms, monthName, note, peakLabel } from './divers.js?v=0.26.0';
-import { burst, gcEvent } from './amusements.js?v=0.26.0';
+import { $, ago, dateFmt, el, ICONS, svg } from './outils.js?v=0.27.1';
+import { zoom } from './rendu.js?v=0.27.1';
+import { stat } from './bibliotheque.js?v=0.27.1';
+import { flag, hms, monthName, note, peakLabel } from './divers.js?v=0.27.1';
+import { burst, gcEvent } from './amusements.js?v=0.27.1';
 
 export function habitsView(x) {
   if (!x) return [note('Pas encore d’habitude suivie.')];
