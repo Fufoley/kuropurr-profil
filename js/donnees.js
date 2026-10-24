@@ -1,6 +1,6 @@
 // Page du profil : lecture de status.json (branche `status`), valeurs par défaut et rythme de relecture.
-import { render } from './rendu.js?v=0.29.0';
-import { progress } from './profil.js?v=0.29.0';
+import { render } from './rendu.js?v=0.29.2';
+import { progress } from './profil.js?v=0.29.2';
 
 const CONFIG = window.KP_PROFIL || {};
 // 0.23 : relecture de status.json selon l'état — « en direct » (activité en cours) 15 s, en ligne 30 s,
