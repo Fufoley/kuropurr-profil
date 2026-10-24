@@ -1,14 +1,14 @@
 // Page du profil : rendu d'ensemble, pages (onglets), fenêtre modale, pseudo animé et journaux des versions.
-import { $, ago, el, isVideo, markdown, safeUrl, since, when } from './outils.js?v=0.28.1';
-import { isLive, OFFLINE_AFTER_MS, status } from './donnees.js?v=0.28.1';
-import { renderActivity, renderLinks, renderOrga } from './profil.js?v=0.28.1';
-import { renderPosts, renderProjects } from './posts.js?v=0.28.1';
-import { renderGames } from './jeux.js?v=0.28.1';
-import { renderAnime } from './mediatheque.js?v=0.28.1';
-import { renderMusic } from './musique.js?v=0.28.1';
-import { discordAvatar, lanyard, loadLanyard, renderDiscord } from './discord.js?v=0.28.1';
-import { note, renderDivers } from './divers.js?v=0.28.1';
-import { views } from './amusements.js?v=0.28.1';
+import { $, ago, el, isVideo, markdown, safeUrl, since, when } from './outils.js?v=0.29.0';
+import { isLive, OFFLINE_AFTER_MS, status } from './donnees.js?v=0.29.0';
+import { renderActivity, renderLinks, renderOrga } from './profil.js?v=0.29.0';
+import { renderPosts, renderProjects } from './posts.js?v=0.29.0';
+import { renderGames } from './jeux.js?v=0.29.0';
+import { renderAnime } from './mediatheque.js?v=0.29.0';
+import { renderMusic } from './musique.js?v=0.29.0';
+import { discordAvatar, lanyard, loadLanyard, renderDiscord } from './discord.js?v=0.29.0';
+import { note, renderDivers } from './divers.js?v=0.29.0';
+import { views } from './amusements.js?v=0.29.0';
 
 // Version et journal du site : déclarés en tête de app.js (le diagnostic de KuroPurr y lit `SITE_VERSION`).
 let SITE_VERSION = '';
