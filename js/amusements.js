@@ -1,7 +1,7 @@
 // Page du profil : Cat.exe, éclats d'emoji, œufs de Pâques et compteur GoatCounter (visites et événements).
-import { $, el } from './outils.js?v=0.27.1';
-import { status } from './donnees.js?v=0.27.1';
-import { openTile } from './divers.js?v=0.27.1';
+import { $, el } from './outils.js?v=0.28.1';
+import { status } from './donnees.js?v=0.28.1';
+import { openTile } from './divers.js?v=0.28.1';
 
 /* ---- Cat.exe : la planche de Cat.exe (8 × 6 cases) ---- */
 const CAT = {
