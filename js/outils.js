@@ -1,5 +1,5 @@
 // Page du profil : outils communs (DOM, adresses sûres, dates et durées, icônes, couleurs des réseaux, markdown).
-import { status } from './donnees.js?v=0.29.0';
+import { status } from './donnees.js?v=0.29.2';
 
 export const $ = (id) => document.getElementById(id);
 /** Adresse sans schéma dangereux (javascript:, vbscript:, data: hors images) : les liens viennent parfois d'autres sites. */
