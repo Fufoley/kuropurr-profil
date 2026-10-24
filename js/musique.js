@@ -1,8 +1,8 @@
 // Page du profil : page Musique — Spotify (écoutes, tops, playlists) et KuroPurr Musique.
-import { $, dur, el, fmtTime, pad, when } from './outils.js?v=0.27.1';
-import { status } from './donnees.js?v=0.27.1';
-import { progress } from './profil.js?v=0.27.1';
-import { applyTools, gprofile, scroller, stat, tools } from './bibliotheque.js?v=0.27.1';
+import { $, dur, el, fmtTime, pad, when } from './outils.js?v=0.28.1';
+import { status } from './donnees.js?v=0.28.1';
+import { progress } from './profil.js?v=0.28.1';
+import { applyTools, gprofile, scroller, stat, tools } from './bibliotheque.js?v=0.28.1';
 
 let mus = 'spotify',
   musView = 'ecoutes';
