@@ -1,6 +1,6 @@
 // Page du profil : carte Discord (Lanyard) — avatar, badges officiels et déclarés, Rich Presence.
-import { $, dur, el, fmtTime, ICONS, svg } from './outils.js?v=0.27.1';
-import { render } from './rendu.js?v=0.27.1';
+import { $, dur, el, fmtTime, ICONS, svg } from './outils.js?v=0.28.1';
+import { render } from './rendu.js?v=0.28.1';
 
 const LANYARD_MS = 30000;
 export let lanyard = null;
