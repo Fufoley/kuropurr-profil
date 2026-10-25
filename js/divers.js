@@ -1,8 +1,8 @@
 // Page du profil : page Divers — tuiles, ouverture des fiches, fiches Activité, Trophées et Mes tops.
-import { $, el, pad } from './outils.js?v=0.29.4';
-import { status } from './donnees.js?v=0.29.4';
-import { openSheet } from './rendu.js?v=0.29.4';
-import { stat } from './bibliotheque.js?v=0.29.4';
+import { $, el, pad } from './outils.js?v=0.30.0';
+import { status } from './donnees.js?v=0.30.0';
+import { openSheet } from './rendu.js?v=0.30.0';
+import { stat } from './bibliotheque.js?v=0.30.0';
 import {
   collectionView,
   guestbookView,
@@ -14,8 +14,8 @@ import {
   recordsView,
   setupView,
   visitorsView,
-} from './fiches.js?v=0.29.4';
-import { catView } from './amusements.js?v=0.29.4';
+} from './fiches.js?v=0.30.0';
+import { catView } from './amusements.js?v=0.30.0';
 
 /* ---------------- Divers : tuiles + fiches ---------------- */
 export const flag = (code) =>
