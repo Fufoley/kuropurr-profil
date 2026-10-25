@@ -1,9 +1,9 @@
 // Page du profil : briques des bibliothèques (Jeux, Médiathèque, Musique) — profil, compteurs, tri, recherche, critiques.
-import { dateFmt, el } from './outils.js?v=0.29.3';
-import { status } from './donnees.js?v=0.29.3';
-import { renderGames } from './jeux.js?v=0.29.3';
-import { renderAnime } from './mediatheque.js?v=0.29.3';
-import { renderMusic } from './musique.js?v=0.29.3';
+import { dateFmt, el } from './outils.js?v=0.29.4';
+import { status } from './donnees.js?v=0.29.4';
+import { renderGames } from './jeux.js?v=0.29.4';
+import { renderAnime } from './mediatheque.js?v=0.29.4';
+import { renderMusic } from './musique.js?v=0.29.4';
 
 const gstate = {
   steam: { q: '', genre: '', sort: 'hours', desc: true },
