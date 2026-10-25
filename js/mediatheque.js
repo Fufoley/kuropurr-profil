@@ -1,7 +1,7 @@
 // Page du profil : Médiathèque — anime et manga (MyAnimeList), séries et films (Simkl).
-import { $, el, when } from './outils.js?v=0.29.4';
-import { status } from './donnees.js?v=0.29.4';
-import { applyTools, critiquesBlock, gprofile, scroller, stat, tools } from './bibliotheque.js?v=0.29.4';
+import { $, el, when } from './outils.js?v=0.30.0';
+import { status } from './donnees.js?v=0.30.0';
+import { applyTools, critiquesBlock, gprofile, scroller, stat, tools } from './bibliotheque.js?v=0.30.0';
 
 let aniKind = 'anime',
   aniFilter = 'all';
