@@ -3,10 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- 0.30 · Politique de sécurité : scripts du site seulement (+ compteur GoatCounter et livre d'or giscus),
+       données lues seulement sur GitHub (status.json), Lanyard (Discord) et GoatCounter ; rien d'autre ne peut
+       s'exécuter même si un texte malveillant passait dans la page. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at https://giscus.app; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' https:; font-src 'self' data:; connect-src 'self' https://raw.githubusercontent.com https://api.lanyard.rest https://*.goatcounter.com https://giscus.app; frame-src https://giscus.app; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Profil</title>
   <meta name="description" content="Mon profil, mis à jour par KuroPurr." />
   <link rel="icon" href="logo.png" />
-  <link rel="stylesheet" href="style.css?v=0.29.4" />
+  <link rel="stylesheet" href="style.css?v=0.30.0" />
 </head>
 <body>
   <div class="bg" id="bg" aria-hidden="true"></div>
@@ -154,7 +159,7 @@
   </div>
 
   <script src="config.js"></script>
-  <script src="extras.js?v=0.29.4"></script>
-  <script src="app.js?v=0.29.4"></script>
+  <script src="extras.js?v=0.30.0"></script>
+  <script src="app.js?v=0.30.0"></script>
 </body>
 </html>
