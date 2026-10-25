@@ -1,7 +1,7 @@
 // Page du profil : page Jeux — Steam, Roblox et instances Minecraft.
-import { $, dateFmt, el, when } from './outils.js?v=0.29.3';
-import { status } from './donnees.js?v=0.29.3';
-import { applyTools, critiquesBlock, gprofile, scroller, stat, tools } from './bibliotheque.js?v=0.29.3';
+import { $, dateFmt, el, when } from './outils.js?v=0.29.4';
+import { status } from './donnees.js?v=0.29.4';
+import { applyTools, critiquesBlock, gprofile, scroller, stat, tools } from './bibliotheque.js?v=0.29.4';
 
 let lib = 'steam',
   steamFilter = 'all';
