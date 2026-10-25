@@ -3,7 +3,7 @@
 // si le statut n'est plus rafraîchi. Lus directement par la page, sans clé : Lanyard (Discord), hits.sh (vues).
 // Ce fichier reste un script classique (ancien index.html en cache compatible) : il déclare la version et le
 // journal du site (le diagnostic de KuroPurr lit `SITE_VERSION` ici), puis charge le code, découpé en modules
-// dans js/. `0.29.3` est remplacé par la version de KuroPurr à l'installation : tous les fichiers changent d'adresse
+// dans js/. `0.29.4` est remplacé par la version de KuroPurr à l'installation : tous les fichiers changent d'adresse
 // ensemble, le navigateur ne mélange jamais ancien et nouveau code.
 (function () {
   'use strict';
@@ -36,5 +36,5 @@
     ['1.6', 'Posts & Projets.'],
     ['1.5', 'Refonte : carrés transparents, page Profil.'],
   ];
-  import('./js/main.js?v=0.29.3').then((m) => m.demarrer(SITE_VERSION, SITE_LOG));
+  import('./js/main.js?v=0.29.4').then((m) => m.demarrer(SITE_VERSION, SITE_LOG));
 })();
