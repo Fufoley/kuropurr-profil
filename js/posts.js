@@ -1,7 +1,7 @@
 // Page du profil : page Posts & Projets — posts (tags, fiche) et projets (filtres, fiche).
-import { $, clock, colorOf, el, isToday, markdown } from './outils.js?v=0.29.3';
-import { status } from './donnees.js?v=0.29.3';
-import { openSheet, zoom } from './rendu.js?v=0.29.3';
+import { $, clock, colorOf, el, isToday, markdown } from './outils.js?v=0.29.4';
+import { status } from './donnees.js?v=0.29.4';
+import { openSheet, zoom } from './rendu.js?v=0.29.4';
 
 let projectFilter = 'all',
   postTag = '';
