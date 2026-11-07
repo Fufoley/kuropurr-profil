@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- 0.30 · Politique de sécurité : scripts du site seulement (+ compteur GoatCounter et livre d'or giscus),
+       données lues seulement sur GitHub (status.json), Lanyard (Discord) et GoatCounter ; rien d'autre ne peut
+       s'exécuter même si un texte malveillant passait dans la page. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at https://giscus.app; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' https:; font-src 'self' data:; connect-src 'self' https://raw.githubusercontent.com https://api.lanyard.rest https://*.goatcounter.com https://giscus.app https://ntfy.sh; frame-src https://giscus.app; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>Profil</title>
+  <meta name="description" content="Mon profil, mis à jour par KuroPurr." />
+  <!-- 0.31 · Aperçu quand on colle le lien (Discord…) : rempli par KuroPurr, avec une image qui change de nom
+       à chaque changement (Discord garde les aperçus en cache). Ne pas retirer les deux repères. -->
+  <!-- kp:og -->
+  <meta property="og:type" content="profile" />
+  <meta property="og:site_name" content="KuroPurr" />
+  <meta property="og:title" content="Fufoley" />
+  <meta property="og:description" content="En ligne — Gestionnaire • Modérateur • Développeur" />
+  <meta property="og:url" content="https://fufoley.github.io/kuropurr-profil/" />
+  <meta property="og:image" content="https://fufoley.github.io/kuropurr-profil/og-4e93f74d80c9.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Fufoley · En ligne" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Fufoley" />
+  <meta name="twitter:description" content="En ligne — Gestionnaire • Modérateur • Développeur" />
+  <meta name="twitter:image" content="https://fufoley.github.io/kuropurr-profil/og-4e93f74d80c9.png" />
+  <meta name="theme-color" content="#976907" />
+  <!-- /kp:og -->
+  <link rel="icon" href="logo.png" />
+  <link rel="stylesheet" href="style.css?v=0.35.0" />
+</head>
+<body>
+  <div class="bg" id="bg" aria-hidden="true"></div>
+  <div class="bg-dim" aria-hidden="true"></div>
+
+  <!-- 0.31 · Écran d'entrée : « clique pour découvrir », choix de la langue (désactivable dans KuroPurr) -->
+  <div class="entree" id="entree" role="dialog" aria-modal="true" aria-labelledby="entreeTexte">
+    <button class="entree-clic" id="entreeClic" type="button">
+      <img src="logo.png" alt="" class="entree-logo" />
+      <span class="entree-pseudo" id="entreePseudo"></span>
+      <span class="entree-texte" id="entreeTexte" data-i18n="clique pour découvrir">clique pour découvrir</span>
+    </button>
+    <div class="entree-langues" id="entreeLangues" role="group" data-i18n-aria="Langue" aria-label="Langue"></div>
+  </div>
+
+  <div class="page">
+    <!-- Haut de page -->
+    <header class="top">
+      <div class="box status"><span class="dot" id="dot"></span><span id="statusText" data-i18n="Chargement…">Chargement…</span></div>
+      <nav class="box nav" id="nav" data-i18n-aria="Pages" aria-label="Pages">
+        <button class="on" data-page="profil" type="button" data-i18n="Profil">Profil</button>
+        <button data-page="projets" type="button" data-i18n="Posts &amp; Projets">Posts &amp; Projets</button>
+        <button data-page="jeux" type="button" data-i18n="Jeux">Jeux</button>
+        <button data-page="mediatheque" type="button" data-i18n="Médiathèque">Médiathèque</button>
+        <button data-page="musique" type="button" data-i18n="Musique">Musique</button>
+        <button data-page="divers" type="button" data-i18n="Divers">Divers</button>
+      </nav>
+      <div class="top-right">
+        <button class="box ver" id="verClientBtn" type="button" data-i18n-title="Journal des mises à jour de KuroPurr" title="Journal des mises à jour de KuroPurr">KuroPurr <b id="verClient">—</b></button>
+        <button class="box ver" id="verSiteBtn" type="button" data-i18n-title="Journal des versions du site" title="Journal des versions du site"><span data-i18n="Site">Site</span> <b id="verSite">—</b></button>
+      </div>
+    </header>
+
+    <main class="grid" data-page="profil">
+      <!-- Gros carré : moi -->
+      <section class="box card me">
+        <div class="avatar"><img src="logo.png" alt="" id="avatar" /></div>
+        <h1 class="pseudo"><span id="pseudo"></span><span class="caret" aria-hidden="true"></span></h1>
+        <div class="tags" id="tags"></div>
+        <hr />
+        <div class="md" id="description"></div>
+      </section>
+
+      <div class="col">
+        <!-- Discord -->
+        <section class="box card discord" id="discord" hidden>
+          <span class="dc-logo">Discord</span>
+          <div class="dc-head">
+            <div class="dc-avatar"><img src="logo.png" alt="" id="dcAvatar" /><img class="dc-deco" alt="" id="dcDeco" hidden /><span class="ring" id="dcRing"></span></div>
+            <div class="dc-names">
+              <strong id="dcName"></strong>
+              <span class="muted" id="dcTag"></span>
+              <div class="dc-badges" id="dcBadges"></div>
+            </div>
+          </div>
+          <hr />
+          <div id="dcPresence"><p class="muted small" data-i18n="Aucune activité Discord.">Aucune activité Discord.</p></div>
+        </section>
+
+        <!-- Activité -->
+        <section class="box card">
+          <div class="now-head"><h2 id="nowTitle" data-i18n="Activité en cours">Activité en cours</h2><span class="live-tag" id="liveTag" data-i18n-title="Activité en cours : la page se met à jour plus souvent" title="Activité en cours : la page se met à jour plus souvent" data-i18n="en direct" hidden>en direct</span></div>
+          <div id="now"></div>
+          <button class="link-btn" id="nowMore" type="button" hidden>Voir toutes les activités en cours</button>
+          <div id="nowAll" hidden></div>
+          <h2 data-i18n="Dernières activités">Dernières activités</h2>
+          <ul class="list" id="history"></ul>
+          <button class="more" id="historyMore" type="button" hidden>Afficher plus</button>
+        </section>
+
+        <!-- 0.31 · En ce moment : ce qui m'a le plus occupé ces 30 derniers jours -->
+        <section class="box card" id="encemoment" hidden></section>
+
+        <!-- Liens -->
+        <section class="box card">
+          <h2 data-i18n="Liens">Liens</h2>
+          <div class="links" id="links"></div>
+          <button class="more" id="linksMore" type="button" hidden>Afficher plus</button>
+        </section>
+      </div>
+    </main>
+
+    <!-- Projets & Portfolio -->
+    <main class="grid grid-projects" data-page="projets" hidden>
+      <section class="box card">
+        <h1 class="big-title" data-i18n="Posts">Posts</h1>
+        <div class="ptags" id="ptags"></div>
+        <hr />
+        <div class="posts" id="posts"></div>
+        <button class="more" id="postsMore" type="button" hidden>Voir plus</button>
+      </section>
+      <section class="box card">
+        <h1 class="big-title" data-i18n="Mes projets">Mes projets</h1>
+        <div class="pstats" id="pstats"></div>
+        <hr />
+        <div class="projects" id="projects"></div>
+        <button class="more" id="projectsMore" type="button" hidden>Voir plus</button>
+      </section>
+    </main>
+
+    <!-- Jeux -->
+    <main class="stage" data-page="jeux" hidden>
+      <section class="box card">
+        <div class="switch" id="libSwitch">
+          <button class="on" data-lib="steam" type="button">Steam</button>
+          <button data-lib="roblox" type="button">Roblox</button>
+          <button data-lib="minecraft" type="button">Minecraft</button>
+        </div>
+        <div id="libBody"></div>
+      </section>
+    </main>
+
+    <main class="stage" data-page="mediatheque" hidden>
+      <section class="box card">
+        <div class="switch" id="aniSwitch">
+          <button class="on" data-kind="anime" type="button" data-i18n="Anime">Anime</button>
+          <button data-kind="manga" type="button" data-i18n="Manga">Manga</button>
+          <button data-kind="series" type="button" data-i18n="Séries">Séries</button>
+          <button data-kind="films" type="button" data-i18n="Films">Films</button>
+        </div>
+        <div id="aniBody"></div>
+      </section>
+    </main>
+
+    <!-- Divers : tuiles -->
+    <main class="stage" data-page="divers" hidden>
+      <section class="box card">
+        <h1 class="big-title" data-i18n="Divers">Divers</h1>
+        <p class="muted small center" data-i18n="Tout ce qui ne rentrait nulle part ailleurs. Clique sur une tuile.">Tout ce qui ne rentrait nulle part ailleurs. Clique sur une tuile.</p>
+        <div class="tiles" id="tiles"></div>
+      </section>
+    </main>
+
+    <!-- Musique -->
+    <main class="stage" data-page="musique" hidden>
+      <section class="box card">
+        <div class="switch" id="musSwitch">
+          <button class="on" data-mus="spotify" type="button">Spotify</button>
+          <button data-mus="kuropurr" type="button" data-i18n="KuroPurr Musique">KuroPurr Musique</button>
+        </div>
+        <div id="musBody"></div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span class="box small" id="updated">—</span>
+      <button class="box small" id="views" type="button" data-i18n-title="Visiteurs par pays" title="Visiteurs par pays">—</button>
+      <span class="foot-right"><button class="box small langue" id="langueBtn" type="button" data-i18n-title="Langue" title="Langue">🇫🇷 Français</button>
+      <span class="box small made"><span data-i18n="Propulsé par KuroPurr">Propulsé par KuroPurr</span> <span class="sep">•</span> <img src="logo.png" alt="" id="footLogo" /></span></span>
+    </footer>
+  </div>
+
+  <!-- 0.31 · Musique d'ambiance : petit lecteur discret (couper, volume), seulement si elle est activée -->
+  <div class="ambiance box" id="ambiance" hidden>
+    <button class="ambiance-btn" id="ambianceBtn" type="button" data-i18n-aria="Couper la musique" aria-label="Couper la musique">♪</button>
+    <input class="ambiance-vol" id="ambianceVol" type="range" min="0" max="100" step="1" value="15" data-i18n-aria="Volume de la musique" aria-label="Volume de la musique" />
+  </div>
+
+  <!-- Fiches (modales), hors de .page : son animation en ferait le repère du « fixed » -->
+  <div class="modal" id="modal" hidden>
+    <div class="box modal-box">
+      <button class="close" id="modalClose" type="button" data-i18n-aria="Fermer" aria-label="Fermer">✕</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="extras.js?v=0.35.0"></script>
+  <script src="app.js?v=0.35.0"></script>
+</body>
+</html>
